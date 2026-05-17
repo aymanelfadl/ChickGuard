@@ -16,9 +16,11 @@ from app.schemas import (
     DashboardLatestStatus,
     DashboardOverview,
 )
+from app.services.auth_service import get_current_user
 
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+require_dashboard_user = Depends(get_current_user)
 
 
 def format_utc(value: datetime | None) -> str | None:
@@ -53,7 +55,7 @@ def latest_prediction_for_sensor(
     )
 
 
-@router.get("/overview", response_model=DashboardOverview)
+@router.get("/overview", response_model=DashboardOverview, dependencies=[require_dashboard_user])
 def get_dashboard_overview(db: Session = Depends(get_db)) -> DashboardOverview:
     """
     Return dashboard summary counts.
@@ -87,7 +89,7 @@ def get_dashboard_overview(db: Session = Depends(get_db)) -> DashboardOverview:
     )
 
 
-@router.get("/latest-status", response_model=DashboardLatestStatus)
+@router.get("/latest-status", response_model=DashboardLatestStatus, dependencies=[require_dashboard_user])
 def get_latest_status(db: Session = Depends(get_db)) -> DashboardLatestStatus:
     """Return the latest sensor state and latest image prediction."""
     latest_sensor = (
@@ -132,7 +134,7 @@ def get_latest_status(db: Session = Depends(get_db)) -> DashboardLatestStatus:
     )
 
 
-@router.get("/health-history", response_model=List[DashboardHealthHistoryItem])
+@router.get("/health-history", response_model=List[DashboardHealthHistoryItem], dependencies=[require_dashboard_user])
 def get_health_history(
     device_id: str | None = None,
     limit: int = Query(default=50, ge=1, le=MAX_LIMIT),
@@ -170,7 +172,7 @@ def get_health_history(
     return history
 
 
-@router.get("/alerts", response_model=List[DashboardAlert])
+@router.get("/alerts", response_model=List[DashboardAlert], dependencies=[require_dashboard_user])
 def get_dashboard_alerts(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     db: Session = Depends(get_db),

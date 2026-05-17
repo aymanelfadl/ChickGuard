@@ -7,10 +7,12 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import get_db
 from app.schemas import DeviceOut, DeviceRegisterAck, DeviceRegisterCreate
+from app.services.auth_service import get_current_user
 from app.services.device_auth_service import hash_api_key
 
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
+require_dashboard_user = Depends(get_current_user)
 
 
 @router.post("/register", response_model=DeviceRegisterAck)
@@ -49,7 +51,7 @@ def register_device(
     )
 
 
-@router.get("", response_model=List[DeviceOut])
+@router.get("", response_model=List[DeviceOut], dependencies=[require_dashboard_user])
 def list_devices(db: Session = Depends(get_db)) -> list[models.Device]:
     """List registered devices without exposing API key hashes."""
     return db.query(models.Device).order_by(models.Device.created_at.desc()).all()

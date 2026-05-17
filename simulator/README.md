@@ -25,10 +25,10 @@ Omit `--once` to send one reading every 5 seconds.
 
 ## MQTT Sensor Mode
 
-Start Mosquitto from the project root:
+Start Mosquitto from the project root for host-based backend development:
 
 ```bash
-docker compose up -d
+docker compose up -d mosquitto
 ```
 
 Run the backend, register the simulator device, then publish one MQTT sensor
@@ -43,6 +43,23 @@ The simulator publishes to:
 ```text
 poultry/farm-01/coop-01/readings
 ```
+
+Connection settings when the backend runs directly on the host:
+
+```text
+BACKEND_URL=http://localhost:8000
+MQTT_BROKER_HOST=localhost
+```
+
+Connection settings when the backend runs in Docker Compose:
+
+```text
+BACKEND_URL=http://localhost:8000
+MQTT_BROKER_HOST=localhost
+```
+
+The simulator runs on the host machine, so it reaches Docker services through
+the exposed `localhost` ports.
 
 ## HTTP Image Mode
 

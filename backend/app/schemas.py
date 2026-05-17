@@ -137,6 +137,55 @@ class DeviceOut(BaseModel):
     created_at: datetime
 
 
+class UserRegisterCreate(BaseModel):
+    email: str = Field(..., min_length=3)
+    full_name: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=6)
+
+    @field_validator("email")
+    @classmethod
+    def email_must_look_valid(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if "@" not in normalized:
+            raise ValueError("email must be valid")
+        return normalized
+
+
+class UserLoginCreate(BaseModel):
+    email: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=1)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class UserPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    full_name: str
+    role: str
+
+
+class UserMe(UserPublic):
+    is_active: bool
+
+
+class UserRegisterAck(BaseModel):
+    status: str
+    message: str
+    user: UserPublic
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: UserPublic
+
+
 class DashboardOverview(BaseModel):
     total_devices: int
     active_devices: int

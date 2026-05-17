@@ -7,7 +7,7 @@ FastAPI backend for the poultry health monitoring system.
 Start Mosquitto from the project root:
 
 ```bash
-docker compose up -d
+docker compose up -d mosquitto
 ```
 
 From this `backend/` directory:
@@ -37,9 +37,72 @@ The backend starts an MQTT consumer on startup and subscribes to:
 poultry/+/+/readings
 ```
 
+## Run With Docker
+
+From the project root:
+
+```bash
+docker compose up --build
+```
+
+The backend container uses these Docker Compose settings:
+
+```text
+DATABASE_URL=sqlite:///./data/poultry_iot.db
+UPLOAD_DIR=./uploads
+MQTT_BROKER_HOST=mosquitto
+MQTT_BROKER_PORT=1883
+JWT_SECRET_KEY=change-this-dev-secret
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+```
+
+SQLite data persists in the `backend_data` volume, and uploaded images persist
+in the `backend_uploads` volume.
+
+## Dashboard User Authentication
+
+Dashboard users authenticate with JWT Bearer tokens. This is separate from
+device authentication, which still uses `X-Device-Id` and `X-Device-Api-Key`.
+
+Register an admin user:
+
+```bash
+curl -X POST http://localhost:8000/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "full_name": "Admin User",
+    "password": "admin123"
+  }'
+```
+
+Log in:
+
+```bash
+curl -X POST http://localhost:8000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@example.com",
+    "password": "admin123"
+  }'
+```
+
+Use the returned token for dashboard/read endpoints:
+
+```bash
+curl http://localhost:8000/api/auth/me \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Protected dashboard endpoints return `401` without a valid token.
+
 ## Endpoints
 
 - `GET /health`
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+- `GET /api/auth/me`
 - `POST /api/devices/register`
 - `GET /api/devices`
 - `PATCH /api/devices/{device_id}/deactivate`
@@ -223,7 +286,8 @@ These endpoints are ready for a future web dashboard or mobile app.
 Overview counts:
 
 ```bash
-curl "http://localhost:8000/api/dashboard/overview"
+curl "http://localhost:8000/api/dashboard/overview" \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 Latest combined status:

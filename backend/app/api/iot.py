@@ -12,11 +12,13 @@ from app.config import DEFAULT_LIMIT, MAX_LIMIT
 from app.database import get_db
 from app.schemas import ImageReadingOut, IoTReadingAck, IoTReadingCreate, IoTReadingOut
 from app.services.device_auth_service import get_authenticated_device, validate_payload_matches_device
+from app.services.auth_service import get_current_user
 from app.services.prediction_service import run_prediction
 from app.services.storage_service import save_uploaded_image
 
 
 router = APIRouter(prefix="/api/iot", tags=["iot"])
+require_dashboard_user = Depends(get_current_user)
 
 
 def parse_image_metadata(metadata_json: str) -> IoTReadingCreate:
@@ -103,7 +105,7 @@ def create_iot_reading(
     )
 
 
-@router.get("/readings", response_model=List[IoTReadingOut])
+@router.get("/readings", response_model=List[IoTReadingOut], dependencies=[require_dashboard_user])
 def get_latest_iot_readings(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     db: Session = Depends(get_db),
@@ -203,7 +205,7 @@ def create_image_reading(
     return response
 
 
-@router.get("/image-readings", response_model=List[ImageReadingOut])
+@router.get("/image-readings", response_model=List[ImageReadingOut], dependencies=[require_dashboard_user])
 def get_latest_image_readings(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     db: Session = Depends(get_db),
