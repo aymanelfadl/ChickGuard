@@ -1,0 +1,8 @@
+__pycache__/
+.venv/
+*.pyc
+node_modules/
+frontend/dist/
+backend/uploads/
+backend/poultry_iot.db
+.env
