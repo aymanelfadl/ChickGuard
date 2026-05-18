@@ -57,10 +57,11 @@ def create_upload_directory(path: Path) -> None:
 
 def save_uploaded_image(image: UploadFile, payload: IoTReadingCreate) -> StoredImage:
     """
-    Save image bytes on disk and return metadata for SQLite.
+    Save poultry droppings image bytes on disk and return metadata for SQLite.
 
-    Binary images are stored outside SQLite so the database remains focused on
-    queryable metadata while the filesystem handles larger files efficiently.
+    Binary droppings images are stored outside SQLite so the database remains
+    focused on queryable metadata while the filesystem handles larger files
+    efficiently.
     """
     extension = validate_image_content_type(image.content_type)
     absolute_path, relative_path, filename = generate_image_paths(payload, extension)

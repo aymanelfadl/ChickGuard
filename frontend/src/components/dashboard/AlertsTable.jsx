@@ -5,13 +5,13 @@ import EmptyState from "../common/EmptyState.jsx";
 import { formatDateTime, formatPercent } from "../../utils/formatters.js";
 import StatusBadge from "./StatusBadge.jsx";
 
-const columns = ["Device", "Farm", "Coop", "Disease", "Confidence", "Image Path", "Timestamp", "Created"];
+const columns = ["Device", "Farm", "Coop", "Disease", "Confidence", "Droppings Image", "Timestamp", "Created"];
 
 export default function AlertsTable({ alerts }) {
   return (
     <Card
-      title="Disease Alerts"
-      description="Sick detections from image readings."
+      title="Health Alerts"
+      description="Health alerts from droppings analysis."
       action={<StatusBadge status={alerts.length ? "sick" : null} />}
     >
       {!alerts.length ? (

@@ -61,9 +61,9 @@ MQTT_BROKER_HOST=localhost
 The simulator runs on the host machine, so it reaches Docker services through
 the exposed `localhost` ports.
 
-## HTTP Image Mode
+## HTTP Droppings Image Mode
 
-Put sample poultry images in:
+Put sample poultry droppings images in:
 
 ```text
 simulator/sample_images/
@@ -80,6 +80,9 @@ The simulator sends multipart/form-data to:
 ```text
 http://localhost:8000/api/iot/image-reading
 ```
+
+The endpoint name remains `image-reading` for compatibility. In this project,
+the file represents a poultry droppings/fecal sample image.
 
 It also sends the required device authentication headers:
 
@@ -102,7 +105,7 @@ curl -X POST http://localhost:8000/api/devices/register \
   }'
 ```
 
-For the mock AI predictor, use filenames such as:
+For the mock droppings analysis fallback, use filenames such as:
 
 ```text
 healthy_01.jpg

@@ -26,7 +26,8 @@ def parse_image_metadata(metadata_json: str) -> IoTReadingCreate:
     Validate multipart metadata with the same schema as sensor-only readings.
 
     This keeps the backend independent from simulator vs real ESP32-CAM. Both
-    send the same JSON metadata contract; only transport differs for images.
+    send the same JSON metadata contract; only transport differs for droppings
+    images.
     """
     try:
         raw_metadata = json.loads(metadata_json)
@@ -126,11 +127,13 @@ def create_image_reading(
     authenticated_device: models.Device = Depends(require_authenticated_device),
 ) -> dict:
     """
-    Receive binary image bytes and JSON metadata in one multipart request.
+    Receive poultry droppings image bytes and JSON metadata in one multipart
+    request.
 
-    multipart/form-data matches the ESP32-CAM use case: the image is binary,
-    while metadata stays structured JSON. Prediction is called through a stable
-    service boundary so the mock model can be replaced without changing the API.
+    multipart/form-data matches the ESP32-CAM use case: the droppings image is
+    binary, while metadata stays structured JSON. Droppings analysis is called
+    through a stable service boundary so model internals can change without
+    changing the API.
     """
     payload = parse_image_metadata(metadata)
     validate_payload_matches_device(payload, authenticated_device)
@@ -171,6 +174,7 @@ def create_image_reading(
         image_size_bytes=stored_image.size_bytes,
         prediction_status=prediction["prediction_status"] if prediction else None,
         disease_type=prediction["disease_type"] if prediction else None,
+        raw_label=prediction["raw_label"] if prediction else None,
         confidence=prediction["confidence"] if prediction else None,
     )
 

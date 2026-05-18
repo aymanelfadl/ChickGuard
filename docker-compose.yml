@@ -15,6 +15,10 @@ services:
     volumes:
       - backend_data:/app/data
       - backend_uploads:/app/uploads
+      - ./scripts:/app/scripts:ro
+      - ./reports:/app/reports
+      - ./simulator/sample_images:/app/simulator/sample_images:ro
+      - ./backend/app/ai_model/model:/app/app/ai_model/model:ro
     depends_on:
       - mosquitto
 

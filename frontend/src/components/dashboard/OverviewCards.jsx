@@ -20,21 +20,21 @@ const overviewCards = [
     icon: Activity,
   },
   {
-    label: "Image Readings",
+    label: "Droppings Images",
     key: "totalImageReadings",
-    description: "Camera captures",
+    description: "Fecal image captures",
     icon: Camera,
   },
   {
     label: "Healthy Detections",
     key: "healthyDetections",
-    description: "Clear classifications",
+    description: "Clear droppings analyses",
     icon: CheckCircle2,
   },
   {
     label: "Sick Detections",
     key: "sickDetections",
-    description: "Cases flagged",
+    description: "Health alerts flagged",
     icon: Siren,
   },
 ];

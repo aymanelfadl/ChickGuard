@@ -7,4 +7,9 @@ frontend/.env
 backend/uploads/
 backend/poultry_iot.db
 backend/data/
+reports/*.csv
+backend/app/ai_model/model/*
+!backend/app/ai_model/model/.gitkeep
+!backend/app/ai_model/model/README.md
+!backend/app/ai_model/model/labels.example.json
 .env

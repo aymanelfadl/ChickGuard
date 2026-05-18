@@ -12,3 +12,25 @@ export const AUTH_ENDPOINTS = {
   login: "/api/auth/login",
   me: "/api/auth/me",
 };
+
+export const FARM_ENDPOINTS = {
+  farms: "/api/farms",
+  farm: (farmId) => `/api/farms/${farmId}`,
+  farmCoops: (farmId) => `/api/farms/${farmId}/coops`,
+};
+
+export const COOP_ENDPOINTS = {
+  coop: (coopId) => `/api/coops/${coopId}`,
+  coopDevices: (coopId) => `/api/coops/${coopId}/devices`,
+};
+
+export const DEVICE_ENDPOINTS = {
+  devices: "/api/devices",
+  device: (deviceId) => `/api/devices/${deviceId}`,
+};
+
+export const REPORT_ENDPOINTS = {
+  options: "/api/reports/options",
+  farmReport: (farmId) => `/api/farms/${farmId}/report`,
+  coopReport: (coopId) => `/api/coops/${coopId}/report`,
+};

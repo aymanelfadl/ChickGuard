@@ -9,8 +9,8 @@ from datetime import datetime, timezone
 import requests
 
 
-# Backend API endpoints. The sensor-only URL sends JSON, while the image URL
-# sends multipart/form-data with image bytes plus JSON metadata.
+# Backend API endpoints. The sensor-only URL sends JSON, while the droppings
+# image URL sends multipart/form-data with droppings image bytes plus JSON metadata.
 BACKEND_URL = "http://localhost:8000/api/iot/readings"
 BACKEND_IMAGE_URL = "http://localhost:8000/api/iot/image-reading"
 
@@ -19,8 +19,9 @@ MQTT_BROKER_HOST = "localhost"
 MQTT_BROKER_PORT = 1883
 MQTT_TOPIC_READINGS = "poultry/farm-01/coop-01/readings"
 
-# The simulator owns its own sample image folder and stays separate from the
-# backend package. Put files such as simulator/sample_images/chicken_01.jpg there.
+# The simulator owns its own sample droppings image folder and stays separate
+# from the backend package. Put files such as
+# simulator/sample_images/healthy_droppings_01.jpg there.
 SIMULATOR_DIR = Path(__file__).resolve().parent
 IMAGE_FOLDER = SIMULATOR_DIR / "sample_images"
 
@@ -112,9 +113,9 @@ def build_payload(
 
 
 def find_sample_images() -> list[Path]:
-    """Return supported JPEG/PNG images from sample_images/."""
+    """Return supported JPEG/PNG droppings images from sample_images/."""
     if not IMAGE_FOLDER.exists():
-        raise FileNotFoundError(f"Image folder not found: {IMAGE_FOLDER}")
+        raise FileNotFoundError(f"Droppings image folder not found: {IMAGE_FOLDER}")
 
     images = [
         path
@@ -123,13 +124,13 @@ def find_sample_images() -> list[Path]:
     ]
     if not images:
         raise FileNotFoundError(
-            f"No .jpg, .jpeg, or .png images found in {IMAGE_FOLDER}"
+            f"No .jpg, .jpeg, or .png droppings images found in {IMAGE_FOLDER}"
         )
     return images
 
 
 def select_sample_image() -> Path:
-    """Pick one local poultry image to simulate an ESP32-CAM capture."""
+    """Pick one local poultry droppings image to simulate an ESP32-CAM capture."""
     return random.choice(find_sample_images())
 
 
@@ -201,14 +202,14 @@ def create_mqtt_client(mqtt_module, client_id: str):
 
 def send_image_payload(payload: dict, image_path: Path) -> None:
     """
-    Send one multipart image reading.
+    Send one multipart poultry droppings image reading.
 
     requests builds multipart/form-data when files= is provided. The metadata
     field stays a JSON string, matching what a real ESP32-CAM can send later.
     """
     content_type = IMAGE_CONTENT_TYPES[image_path.suffix.lower()]
 
-    print("\nSelected image path:")
+    print("\nSelected droppings image path:")
     print(image_path)
     print("Metadata sent:")
     print(json.dumps(payload, indent=2))
@@ -224,7 +225,7 @@ def send_image_payload(payload: dict, image_path: Path) -> None:
             )
         print_backend_response(response)
     except requests.exceptions.RequestException as error:
-        print(f"Connection error while sending image payload: {error}")
+        print(f"Connection error while sending droppings image payload: {error}")
 
 
 def run_sensor_http_mode(send_once: bool) -> None:
@@ -252,10 +253,10 @@ def run_sensor_mqtt_mode(send_once: bool) -> None:
 
 
 def run_image_http_mode(send_once: bool) -> None:
-    """Run the ESP32-CAM-style HTTP image upload simulator mode."""
-    print(f"Starting HTTP image simulator for device {DEVICE_ID}")
-    print(f"Reading sample images from {IMAGE_FOLDER}")
-    print(f"Sending image readings to {BACKEND_IMAGE_URL} every {SEND_INTERVAL_SECONDS} seconds")
+    """Run the ESP32-CAM-style HTTP droppings image upload simulator mode."""
+    print(f"Starting HTTP droppings image simulator for device {DEVICE_ID}")
+    print(f"Reading sample droppings images from {IMAGE_FOLDER}")
+    print(f"Sending droppings image readings to {BACKEND_IMAGE_URL} every {SEND_INTERVAL_SECONDS} seconds")
 
     while True:
         try:
@@ -271,7 +272,7 @@ def run_image_http_mode(send_once: bool) -> None:
 
 
 def main() -> None:
-    """Choose HTTP sensor, MQTT sensor, or HTTP image mode from the command line."""
+    """Choose HTTP sensor, MQTT sensor, or HTTP droppings image mode from the command line."""
     parser = argparse.ArgumentParser(description="Poultry IoT ESP32/ESP32-CAM simulator")
     parser.add_argument(
         "--mode",

@@ -1,6 +1,6 @@
 # Sample Images
 
-Put local poultry images in this folder for image simulator mode.
+Put local poultry droppings images in this folder for image simulator mode.
 
 Supported file types:
 
@@ -11,10 +11,10 @@ Supported file types:
 Example:
 
 ```text
-simulator/sample_images/chicken_01.jpg
+simulator/sample_images/healthy_droppings_01.jpg
 ```
 
-Mock prediction label examples:
+Mock droppings analysis label examples:
 
 ```text
 healthy_01.jpg

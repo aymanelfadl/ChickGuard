@@ -107,6 +107,7 @@ class ImageReadingOut(BaseModel):
     image_size_bytes: int
     prediction_status: Optional[str]
     disease_type: Optional[str]
+    raw_label: Optional[str]
     confidence: Optional[float]
     created_at: datetime
 
@@ -135,6 +136,73 @@ class DeviceOut(BaseModel):
     coop_id: str
     is_active: bool
     created_at: datetime
+
+
+class FarmCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    location: Optional[str] = None
+    description: Optional[str] = None
+
+
+class FarmOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    location: Optional[str]
+    description: Optional[str]
+    created_at: datetime
+
+
+class FarmSummary(FarmOut):
+    number_of_coops: int
+    number_of_devices: int
+    active_alerts: int
+    latest_health_status: Optional[str]
+
+
+class CoopCreate(BaseModel):
+    name: str = Field(..., min_length=1)
+    description: Optional[str] = None
+    capacity: Optional[int] = Field(default=None, ge=0)
+
+
+class CoopOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    farm_id: int
+    name: str
+    description: Optional[str]
+    capacity: Optional[int]
+    created_at: datetime
+
+
+class CoopSummary(CoopOut):
+    number_of_devices: int
+    active_alerts: int
+    latest_health_status: Optional[str]
+
+
+class CameraDeviceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    device_id: str
+    farm_id: int
+    coop_id: int
+    name: str
+    device_type: str
+    stream_url: Optional[str]
+    is_active: bool
+    created_at: datetime
+    latest_prediction: Optional[dict] = None
+
+
+class DeviceDetailOut(DeviceOut):
+    camera: Optional[CameraDeviceOut] = None
+    latest_prediction: Optional[dict] = None
+    latest_sensor: Optional[dict] = None
 
 
 class UserRegisterCreate(BaseModel):

@@ -1,9 +1,9 @@
 # MQTT Sensor Readings
 
 MQTT is used for lightweight sensor telemetry because it is efficient for small,
-frequent messages from ESP32 devices. HTTP remains the image upload path because
-multipart/form-data is simpler and more appropriate for larger binary
-ESP32-CAM captures.
+frequent messages from ESP32 devices. HTTP remains the poultry droppings image
+upload path because multipart/form-data is simpler and more appropriate for
+larger binary ESP32-CAM captures.
 
 ## Local Broker
 

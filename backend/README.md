@@ -2,6 +2,27 @@
 
 FastAPI backend for the poultry health monitoring system.
 
+## Farm Management Model
+
+The backend now models the product hierarchy used by the management UI:
+
+```text
+Farm
+  -> Coop
+      -> CameraDevice
+      -> Registered Device credentials
+      -> Sensor readings
+      -> Poultry droppings analyses
+      -> Health alerts
+```
+
+`Device` remains the authentication registry for ESP32/simulator ingestion.
+`CameraDevice` stores product-facing camera metadata such as name, status, and a
+future `stream_url`. Live video streaming is not implemented yet; reports and UI
+cards expose placeholders for future ESP32-CAM/IP camera integration.
+
+Farm and coop reports return JSON for now, not PDF.
+
 ## Run Locally
 
 Start Mosquitto from the project root:
@@ -57,8 +78,92 @@ JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 ```
 
-SQLite data persists in the `backend_data` volume, and uploaded images persist
-in the `backend_uploads` volume.
+SQLite data persists in the `backend_data` volume, and uploaded poultry
+droppings images persist in the `backend_uploads` volume.
+
+## AI Model Assets
+
+The droppings image predictor uses a real droppings image-only Keras model when
+these files exist:
+
+```text
+backend/app/ai_model/model/chicken_disease_model.keras/
+backend/app/ai_model/model/labels.json
+```
+
+Trained model assets are intentionally ignored by git so the repository stays
+portable. Keep local assets under `backend/app/ai_model/model/`; the repo tracks
+only `README.md`, `.gitkeep`, and `labels.example.json` in that directory.
+
+The `.keras` path is an unzipped Keras directory, not a single file:
+
+```text
+backend/app/ai_model/model/chicken_disease_model.keras/
+├── config.json
+├── metadata.json
+└── model.weights.h5
+```
+
+`labels.json` must keep the exact training output order. Do not sort or rename
+these values, because each index maps directly to the model prediction index:
+
+```json
+[
+  "cocci",
+  "healty",
+  "ncd",
+  "pcrcocci",
+  "pcrhealthy",
+  "pcrncd",
+  "pcrsalmo",
+  "salmo"
+]
+```
+
+The AI model classifies poultry droppings images into disease-related classes:
+
+- Coccidiosis
+- Newcastle Disease
+- Salmonella
+- Healthy
+
+For local setup, copy the example labels file and extract the model zip:
+
+```bash
+cd backend/app/ai_model/model
+cp labels.example.json labels.json
+unzip /path/to/chicken_disease_model.keras.zip -d chicken_disease_model.keras
+```
+
+If the zip already contains a top-level `chicken_disease_model.keras/`
+directory, extract it directly into `backend/app/ai_model/model/`. If the zip
+contains `config.json`, `metadata.json`, and `model.weights.h5` at the archive
+root, extract it into the `chicken_disease_model.keras/` directory.
+
+The backend loads the model lazily on the first droppings image prediction with
+`tf.keras.models.load_model(...)`. If the model directory, labels file, or
+TensorFlow runtime is missing during development, the backend logs a warning and
+uses the deterministic mock predictor fallback.
+
+Prediction responses include the droppings analysis label and dashboard-friendly
+mapping:
+
+```json
+{
+  "prediction_status": "sick",
+  "disease_type": "Coccidiosis",
+  "raw_label": "cocci",
+  "confidence": 0.88
+}
+```
+
+The `raw_label` column is added automatically for local SQLite databases. If a
+development database still has schema issues after pulling this change, reset the
+Docker volumes from the project root:
+
+```bash
+docker compose down -v
+```
 
 ## Dashboard User Authentication
 
@@ -105,7 +210,18 @@ Protected dashboard endpoints return `401` without a valid token.
 - `GET /api/auth/me`
 - `POST /api/devices/register`
 - `GET /api/devices`
+- `GET /api/devices/{device_id}`
 - `PATCH /api/devices/{device_id}/deactivate`
+- `GET /api/farms`
+- `POST /api/farms`
+- `GET /api/farms/{farm_id}`
+- `GET /api/farms/{farm_id}/coops`
+- `POST /api/farms/{farm_id}/coops`
+- `GET /api/coops/{coop_id}`
+- `GET /api/coops/{coop_id}/devices`
+- `GET /api/farms/{farm_id}/report`
+- `GET /api/coops/{coop_id}/report`
+- `GET /api/reports/options`
 - `POST /api/iot/readings`
 - `GET /api/iot/readings`
 - `POST /api/iot/image-reading`
@@ -163,9 +279,11 @@ Authenticated IoT requests must include:
 -H "X-Device-Api-Key: dev-secret-key"
 ```
 
-## Image Reading Test
+## Droppings Image Reading Test
 
 Use a new `message_id` for each request.
+The route name remains `/api/iot/image-reading` for compatibility; the uploaded
+file should be a poultry droppings/fecal sample image.
 
 ```bash
 curl -X POST "http://localhost:8000/api/iot/image-reading" \
@@ -210,6 +328,7 @@ Expected response shape:
   "prediction": {
     "prediction_status": "healthy",
     "disease_type": null,
+    "raw_label": "healty",
     "confidence": 0.94
   }
 }
@@ -281,7 +400,8 @@ curl "http://localhost:8000/api/iot/readings?limit=5"
 
 ## Dashboard API
 
-These endpoints are ready for a future web dashboard or mobile app.
+These endpoints are ready for a future web dashboard or mobile app. Health
+alerts are based on poultry droppings image analysis.
 
 Overview counts:
 
@@ -308,7 +428,7 @@ Filter history by device:
 curl "http://localhost:8000/api/dashboard/health-history?device_id=esp32-sim-01&limit=20"
 ```
 
-Sick-detection alerts:
+Health alerts from droppings analysis:
 
 ```bash
 curl "http://localhost:8000/api/dashboard/alerts?limit=20"
@@ -322,24 +442,25 @@ SQLite stays at:
 backend/poultry_iot.db
 ```
 
-Uploaded images stay at:
+Uploaded poultry droppings images stay at:
 
 ```text
 backend/uploads/{device_id}/{YYYY-MM-DD}/{message_id}.{extension}
 ```
 
-Only image paths and metadata are stored in SQLite. Image binaries are stored on
-disk.
+Only droppings image paths and metadata are stored in SQLite. Image binaries are
+stored on disk.
 
-## Mock AI Predictor
+## AI Predictor And Mock Fallback
 
-The current AI layer is a deterministic mock:
+The AI adapter accepts a saved poultry droppings image path:
 
 ```python
 predict_poultry_disease(image_path: str) -> dict
 ```
 
-It checks the saved filename for labels such as `healthy`, `coccidiosis`,
-`newcastle`, and `salmonella`. The route calls it through
-`app/services/prediction_service.py`, so the real model can replace the mock
-without changing the API endpoint.
+When local Keras model assets are present, it performs fecal image
+classification. If the model is unavailable during development, the deterministic
+mock fallback checks the saved filename for labels such as `healthy`,
+`coccidiosis`, `newcastle`, and `salmonella`. The route calls the adapter through
+`app/services/prediction_service.py`, so the endpoint contract does not change.

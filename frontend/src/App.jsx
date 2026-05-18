@@ -1,42 +1,43 @@
-import ErrorState from "./components/common/ErrorState.jsx";
-import LoadingState from "./components/common/LoadingState.jsx";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+
 import LoginPage from "./components/auth/LoginPage.jsx";
 import ProtectedRoute from "./components/auth/ProtectedRoute.jsx";
-import AlertsTable from "./components/dashboard/AlertsTable.jsx";
-import HealthHistoryChart from "./components/dashboard/HealthHistoryChart.jsx";
-import LatestStatus from "./components/dashboard/LatestStatus.jsx";
-import OverviewCards from "./components/dashboard/OverviewCards.jsx";
 import DashboardLayout from "./components/layout/DashboardLayout.jsx";
 import Header from "./components/layout/Header.jsx";
 import { useAuth } from "./hooks/useAuth.js";
-import { useDashboardData } from "./hooks/useDashboardData.js";
+import AlertsPage from "./pages/AlertsPage.jsx";
+import CoopDetailsPage from "./pages/CoopDetailsPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import DevicesPage from "./pages/DevicesPage.jsx";
+import FarmDetailsPage from "./pages/FarmDetailsPage.jsx";
+import FarmsPage from "./pages/FarmsPage.jsx";
+import ReportsPage from "./pages/ReportsPage.jsx";
+import SettingsPage from "./pages/SettingsPage.jsx";
 
-function DashboardPage({ user, onLogout }) {
-  const { overview, latestStatus, healthHistory, alerts, isLoading, error, refreshDashboardData } = useDashboardData();
-
+function AppRoutes({ user, onLogout }) {
   return (
     <DashboardLayout
+      user={user}
       header={
         <Header
-          isRefreshing={isLoading}
-          onRefresh={refreshDashboardData}
+          isRefreshing={false}
+          onRefresh={() => window.location.reload()}
           user={user}
           onLogout={onLogout}
         />
       }
     >
-      {isLoading ? (
-        <LoadingState />
-      ) : error ? (
-        <ErrorState error={error} />
-      ) : (
-        <>
-          <OverviewCards overview={overview} />
-          <LatestStatus status={latestStatus} />
-          <HealthHistoryChart history={healthHistory} />
-          <AlertsTable alerts={alerts} />
-        </>
-      )}
+      <Routes>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/farms" element={<FarmsPage user={user} />} />
+        <Route path="/farms/:farmId" element={<FarmDetailsPage />} />
+        <Route path="/coops/:coopId" element={<CoopDetailsPage />} />
+        <Route path="/devices" element={<DevicesPage />} />
+        <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </DashboardLayout>
   );
 }
@@ -53,12 +54,14 @@ export default function App() {
   } = useAuth();
 
   return (
-    <ProtectedRoute
-      isAuthenticated={isAuthenticated}
-      isLoading={isInitializing}
-      loginPage={<LoginPage onLogin={login} isLoading={isSubmitting} error={authError} />}
-    >
-      <DashboardPage user={currentUser} onLogout={logout} />
-    </ProtectedRoute>
+    <BrowserRouter>
+      <ProtectedRoute
+        isAuthenticated={isAuthenticated}
+        isLoading={isInitializing}
+        loginPage={<LoginPage onLogin={login} isLoading={isSubmitting} error={authError} />}
+      >
+        <AppRoutes user={currentUser} onLogout={logout} />
+      </ProtectedRoute>
+    </BrowserRouter>
   );
 }

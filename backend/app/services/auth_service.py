@@ -79,3 +79,17 @@ def get_current_user(
         )
 
     return user
+
+
+def require_roles(*allowed_roles: str):
+    """Return a dependency that allows only specific dashboard user roles."""
+
+    def dependency(user: models.User = Depends(get_current_user)) -> models.User:
+        if user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User role is not allowed to perform this action",
+            )
+        return user
+
+    return dependency

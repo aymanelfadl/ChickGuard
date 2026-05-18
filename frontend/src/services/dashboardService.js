@@ -1,18 +1,5 @@
-import { API_BASE_URL, DASHBOARD_ENDPOINTS } from "../config/apiConfig.js";
-import { getToken } from "../utils/tokenStorage.js";
-
-async function fetchJson(endpoint) {
-  const token = getToken();
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-
-  if (!response.ok) {
-    throw new Error(`Backend returned ${response.status} for ${endpoint}`);
-  }
-
-  return response.json();
-}
+import { DASHBOARD_ENDPOINTS } from "../config/apiConfig.js";
+import { fetchJson } from "./apiClient.js";
 
 export function fetchDashboardOverview() {
   return fetchJson(DASHBOARD_ENDPOINTS.overview);

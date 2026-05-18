@@ -2,7 +2,8 @@
 
 ## Sensor Metadata JSON
 
-Both sensor-only and image-reading requests use this metadata shape:
+Both sensor-only and poultry droppings image-reading requests use this metadata
+shape:
 
 ```json
 {
@@ -68,7 +69,7 @@ Because MQTT messages do not have HTTP headers, include the device key in:
 }
 ```
 
-## Image Reading Request
+## Droppings Image Reading Request
 
 ```text
 POST /api/iot/image-reading
@@ -77,16 +78,19 @@ X-Device-Id: esp32-sim-01
 X-Device-Api-Key: dev-secret-key
 ```
 
+The endpoint name remains `image-reading` for client compatibility. In this
+project, the uploaded image is a poultry droppings/fecal sample image.
+
 Multipart fields:
 
-- `image`: JPEG or PNG file
+- `image`: JPEG or PNG poultry droppings image file
 - `metadata`: JSON string using the same schema shown above
 
-Images are saved to:
+Poultry droppings images are saved to:
 
 ```text
 backend/uploads/{device_id}/{YYYY-MM-DD}/{message_id}.{extension}
 ```
 
-SQLite stores the image path, file metadata, sensor metadata, and prediction
-fields.
+SQLite stores the droppings image path, file metadata, sensor metadata, and
+droppings analysis prediction fields.

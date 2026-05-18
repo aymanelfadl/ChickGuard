@@ -5,12 +5,14 @@ from app import models
 from app.api.auth import router as auth_router
 from app.api.dashboard import router as dashboard_router
 from app.api.devices import router as devices_router
+from app.api.farms import router as farms_router
 from app.api.iot import router as iot_router
-from app.database import engine
+from app.database import engine, ensure_database_schema
 from app.services.mqtt_consumer_service import start_mqtt_consumer, stop_mqtt_consumer
 
 
 models.Base.metadata.create_all(bind=engine)
+ensure_database_schema()
 
 app = FastAPI(
     title="Poultry Health IoT Backend",
@@ -49,5 +51,6 @@ def shutdown_event() -> None:
 
 app.include_router(iot_router)
 app.include_router(devices_router)
+app.include_router(farms_router)
 app.include_router(dashboard_router)
 app.include_router(auth_router)

@@ -93,8 +93,8 @@ export default function LatestStatus({ status }) {
       </Card>
 
       <Card
-        title="Latest Image Prediction"
-        description="Most recent mock AI classification result."
+        title="Latest Droppings Analysis"
+        description="AI analysis based on poultry droppings images."
         action={<StatusBadge status={prediction?.predictionStatus} />}
         className="min-h-[300px]"
       >
@@ -103,7 +103,7 @@ export default function LatestStatus({ status }) {
             <div className="rounded-lg border border-[#BBF7D0] bg-gradient-to-br from-[#F0FDF4] to-white p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-[#64748B]">AI Classification</p>
+                  <p className="text-sm font-medium text-[#64748B]">Droppings Analysis</p>
                   <p className="mt-2 text-2xl font-bold text-[#102A1C]">
                     {prediction.diseaseType || "No disease detected"}
                   </p>
@@ -120,7 +120,7 @@ export default function LatestStatus({ status }) {
             <dl className="rounded-lg border border-[#E2E8F0] px-4">
               <ValueRow label="Confidence" value={formatPercent(prediction.confidence)} />
               <ValueRow
-                label="Image Path"
+                label="Droppings Image"
                 value={prediction.imagePath}
                 title={prediction.imagePath}
               />
@@ -129,8 +129,8 @@ export default function LatestStatus({ status }) {
           </div>
         ) : (
           <EmptyState
-            title="No image prediction yet"
-            message="Camera classifications will appear after an image reading is uploaded."
+            title="No droppings analysis yet"
+            message="Fecal image classification will appear after a droppings image is uploaded."
           />
         )}
       </Card>

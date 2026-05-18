@@ -2,18 +2,32 @@
 
 React + Vite dashboard for the IoT poultry health monitoring backend.
 
+The dashboard presents poultry health telemetry and health alerts from
+droppings analysis. The AI result shown in the UI is based on poultry droppings
+images captured from fecal/manure samples.
+
+The frontend is now structured as a farm management platform with routed pages
+for dashboard, farms, coops, devices/cameras, alerts, reports, and settings.
+Live streaming is represented by placeholders only; real ESP32-CAM/IP camera
+stream integration is planned for a later sprint.
+
 ## Structure
 
 ```text
 src/
   App.jsx                         Dashboard composition only
   config/apiConfig.js             API base URL and endpoint paths
-  services/dashboardService.js    All dashboard API calls
+  pages/                          Route-level product pages
+  services/                       Dashboard, farm, coop, device, and report API calls
   models/dashboardModels.js       Backend response normalization
   hooks/useDashboardData.js       Loading, error, refresh, and data state
   components/layout/              Page shell and header
   components/common/              Reusable UI primitives
   components/dashboard/           Dashboard-specific presentation components
+  components/farm/                Farm cards and summaries
+  components/coop/                Coop cards and summaries
+  components/devices/             Camera/device cards with stream placeholders
+  components/reports/             JSON report viewer
   utils/                          Formatting and status helpers
 ```
 
@@ -70,9 +84,19 @@ GET /api/dashboard/overview
 GET /api/dashboard/latest-status
 GET /api/dashboard/health-history
 GET /api/dashboard/alerts
+GET /api/farms
+GET /api/farms/{farm_id}
+GET /api/farms/{farm_id}/coops
+GET /api/coops/{coop_id}
+GET /api/coops/{coop_id}/devices
+GET /api/farms/{farm_id}/report
+GET /api/coops/{coop_id}/report
+GET /api/reports/options
+GET /api/devices
 ```
 
-No fake dashboard data is hardcoded in the frontend. Empty and null backend values are shown as safe fallback states.
+No fake dashboard data is hardcoded in the frontend. Empty and null backend
+values are shown as safe fallback states.
 
 ## Authentication
 

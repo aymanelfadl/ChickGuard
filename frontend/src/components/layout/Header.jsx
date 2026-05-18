@@ -13,7 +13,7 @@ export default function Header({ isRefreshing, onRefresh, user, onLogout }) {
             Poultry Health Intelligence
           </h1>
           <p className="mt-3 max-w-2xl text-base leading-7 text-[#64748B]">
-            Real-time IoT monitoring, disease detection, and growth tracking.
+            Real-time IoT monitoring, growth tracking, and AI analysis based on poultry droppings images.
           </p>
         </div>
 

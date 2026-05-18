@@ -5,8 +5,30 @@ poultry health monitoring.
 
 The project supports dashboard user login with JWT, device registration,
 API-key authenticated HTTP sensor readings, MQTT sensor readings, ESP32-CAM-style
-HTTP image uploads, local image storage, SQLite persistence, dashboard-ready
-APIs, and a mock AI predictor that can be replaced by a real model later.
+HTTP poultry droppings image uploads, local droppings image storage, SQLite
+persistence, dashboard-ready APIs, and a fecal image classification predictor
+with mock fallback for development.
+
+The product structure now follows a farm management hierarchy:
+
+```text
+Farm
+  -> Coop
+      -> Camera / Device
+          -> Sensor readings
+          -> Poultry droppings image analyses
+          -> Health alerts
+```
+
+Live camera streaming is planned but not implemented yet. The frontend includes
+camera cards with a stream placeholder for future ESP32-CAM/IP camera
+integration. Farm and coop reports are JSON responses for now; PDF export can be
+added later.
+
+The repository does not include trained model assets. Add them locally under
+`backend/app/ai_model/model/`; see
+`backend/app/ai_model/model/README.md` for the expected Keras directory and
+labels file layout.
 
 ## Architecture
 
@@ -28,33 +50,54 @@ Dashboard API endpoints
         v
 React Dashboard
 
-ESP32-CAM or Laptop Simulator image data
+ESP32-CAM / Laptop Simulator captures poultry droppings image
         |
         v
-Authenticated HTTP multipart request
+FastAPI backend receives authenticated droppings image upload
         |
         v
-FastAPI Backend
+AI model classifies droppings image
         |
         v
-Device Registry validation
+Disease prediction is stored in SQLite
         |
         v
-Mock AI Predictor now / Real AI Model later
-        |
-        v
-SQLite Database
+Dashboard shows health alerts
 ```
 
 ## Structure
 
 ```text
-backend/      FastAPI app, SQLite database, uploads, mock AI adapter
-frontend/     React + Vite dashboard served by nginx in Docker
-simulator/    Laptop ESP32/ESP32-CAM simulator and sample images
+backend/      FastAPI app, SQLite database, uploads, droppings AI adapter
+frontend/     React + Vite farm management UI served by nginx in Docker
+simulator/    Laptop ESP32/ESP32-CAM simulator and sample droppings images
 docs/         Architecture, payload, MQTT, and sprint notes
 mosquitto/    Local Mosquitto broker configuration
 ```
+
+## Model Validation
+
+Run the local predictor validation tool against sample droppings images:
+
+```bash
+python -m pip install -r backend/requirements.txt
+python scripts/validate_model_predictions.py
+```
+
+Use `--image-dir path/to/droppings-images` for a custom folder. The tool writes
+`reports/model_validation_report.csv` and is intended for integration
+validation, not full scientific model evaluation.
+
+When TensorFlow is not installed locally, run validation inside the backend
+Docker container:
+
+```bash
+docker compose up -d --build
+make validate-model
+```
+
+See [docs/model_validation.md](docs/model_validation.md) for filename label
+rules and report details.
 
 ## Docker
 
@@ -76,7 +119,7 @@ Stop services:
 docker compose down
 ```
 
-Reset the persisted SQLite database and uploaded images:
+Reset the persisted SQLite database and uploaded droppings images:
 
 ```bash
 docker compose down -v
@@ -107,7 +150,7 @@ Docker volumes:
 
 ```text
 backend_data     SQLite database at /app/data/poultry_iot.db
-backend_uploads  Uploaded images at /app/uploads
+backend_uploads  Uploaded droppings images at /app/uploads
 ```
 
 ## Local Development
@@ -164,7 +207,7 @@ Check that MQTT readings were stored:
 curl "http://localhost:8000/api/iot/readings?limit=5"
 ```
 
-Image upload still uses HTTP:
+Droppings image upload still uses HTTP:
 
 ```bash
 python edge_simulator.py --mode image-http --once
@@ -187,8 +230,8 @@ MQTT_BROKER_HOST=localhost
 - Frontend opens at `http://localhost:5173`.
 - Mosquitto is reachable on `localhost:1883`.
 - Simulator publishes MQTT sensor data to `localhost:1883`.
-- Simulator uploads images to `http://localhost:8000/api/iot/image-reading`.
-- Uploaded images persist in the `backend_uploads` volume.
+- Simulator uploads droppings images to `http://localhost:8000/api/iot/image-reading`.
+- Uploaded droppings images persist in the `backend_uploads` volume.
 - SQLite data persists in the `backend_data` volume.
 - `docker compose down -v` removes persisted database and uploads.
 

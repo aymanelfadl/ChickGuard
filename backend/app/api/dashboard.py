@@ -91,7 +91,7 @@ def get_dashboard_overview(db: Session = Depends(get_db)) -> DashboardOverview:
 
 @router.get("/latest-status", response_model=DashboardLatestStatus, dependencies=[require_dashboard_user])
 def get_latest_status(db: Session = Depends(get_db)) -> DashboardLatestStatus:
-    """Return the latest sensor state and latest image prediction."""
+    """Return the latest sensor state and latest droppings analysis."""
     latest_sensor = (
         db.query(models.IoTReading)
         .order_by(models.IoTReading.timestamp.desc(), models.IoTReading.created_at.desc())
@@ -140,7 +140,7 @@ def get_health_history(
     limit: int = Query(default=50, ge=1, le=MAX_LIMIT),
     db: Session = Depends(get_db),
 ) -> list[DashboardHealthHistoryItem]:
-    """Return sensor history with prediction context for dashboard charts."""
+    """Return sensor history with droppings analysis context for dashboard charts."""
     query = db.query(models.IoTReading)
     if device_id:
         query = query.filter(models.IoTReading.device_id == device_id)
@@ -177,7 +177,7 @@ def get_dashboard_alerts(
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     db: Session = Depends(get_db),
 ) -> list[DashboardAlert]:
-    """Return sick detections for future dashboard alert panels."""
+    """Return sick detections from droppings analysis for dashboard alert panels."""
     alerts = (
         db.query(models.ImageReading)
         .filter(models.ImageReading.prediction_status == "sick")

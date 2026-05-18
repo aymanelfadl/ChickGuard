@@ -21,8 +21,9 @@ def start_mqtt_consumer() -> None:
     """
     Start the MQTT consumer loop for sensor-only readings.
 
-    MQTT is used for lightweight telemetry. Image upload stays on HTTP because
-    multipart/form-data is a better fit for larger binary camera captures.
+    MQTT is used for lightweight telemetry. Poultry droppings image upload
+    stays on HTTP because multipart/form-data is a better fit for larger binary
+    camera captures.
     """
     global _mqtt_client
     if _mqtt_client is not None:

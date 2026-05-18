@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 
 from app.database import Base
 
@@ -34,6 +34,59 @@ class User(Base):
     full_name = Column(String(255), nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False, default="admin")
+    is_active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Farm(Base):
+    """Farm managed by the platform."""
+
+    __tablename__ = "farms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), unique=True, index=True, nullable=False)
+    location = Column(String(255), nullable=True)
+    description = Column(String(1000), nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class Coop(Base):
+    """Coop or house inside a farm."""
+
+    __tablename__ = "coops"
+
+    id = Column(Integer, primary_key=True, index=True)
+    farm_id = Column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
+    name = Column(String(255), index=True, nullable=False)
+    description = Column(String(1000), nullable=True)
+    capacity = Column(Integer, nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
+class CameraDevice(Base):
+    """Camera/device presentation metadata linked to the device registry."""
+
+    __tablename__ = "camera_devices"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String(100), unique=True, index=True, nullable=False)
+    farm_id = Column(Integer, ForeignKey("farms.id"), index=True, nullable=False)
+    coop_id = Column(Integer, ForeignKey("coops.id"), index=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    device_type = Column(String(100), nullable=False)
+    stream_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
     created_at = Column(
         DateTime(timezone=True),
@@ -76,7 +129,7 @@ class IoTReading(Base):
 
 
 class ImageReading(Base):
-    """Image readings received from ESP32-CAM devices or the simulator."""
+    """Droppings image readings received from ESP32-CAM devices or the simulator."""
 
     __tablename__ = "image_readings"
 
@@ -108,6 +161,7 @@ class ImageReading(Base):
 
     prediction_status = Column(String(50), nullable=True)
     disease_type = Column(String(100), nullable=True)
+    raw_label = Column(String(100), nullable=True)
     confidence = Column(Float, nullable=True)
 
     created_at = Column(
