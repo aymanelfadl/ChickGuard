@@ -7,6 +7,7 @@ from app.api.dashboard import router as dashboard_router
 from app.api.devices import router as devices_router
 from app.api.farms import router as farms_router
 from app.api.iot import router as iot_router
+from app.api.realtime import router as realtime_router
 from app.database import engine, ensure_database_schema
 from app.services.mqtt_consumer_service import start_mqtt_consumer, stop_mqtt_consumer
 
@@ -54,3 +55,4 @@ app.include_router(devices_router)
 app.include_router(farms_router)
 app.include_router(dashboard_router)
 app.include_router(auth_router)
+app.include_router(realtime_router)

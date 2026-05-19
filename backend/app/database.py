@@ -32,10 +32,25 @@ def ensure_database_schema() -> None:
     the real model raw_label output.
     """
     inspector = inspect(engine)
-    if "image_readings" not in inspector.get_table_names():
-        return
+    table_names = inspector.get_table_names()
 
-    columns = {column["name"] for column in inspector.get_columns("image_readings")}
-    if "raw_label" not in columns:
+    if "image_readings" in table_names:
+        columns = {column["name"] for column in inspector.get_columns("image_readings")}
+        if "raw_label" not in columns:
+            with engine.begin() as connection:
+                connection.execute(text("ALTER TABLE image_readings ADD COLUMN raw_label VARCHAR(100)"))
+
+    for table_name in ("devices", "camera_devices"):
+        if table_name not in table_names:
+            continue
+
+        table_columns = {column["name"] for column in inspector.get_columns(table_name)}
         with engine.begin() as connection:
-            connection.execute(text("ALTER TABLE image_readings ADD COLUMN raw_label VARCHAR(100)"))
+            if "last_seen_at" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN last_seen_at DATETIME"))
+            if "status" not in table_columns:
+                connection.execute(
+                    text(f"ALTER TABLE {table_name} ADD COLUMN status VARCHAR(20) DEFAULT 'offline'")
+                )
+            if "last_event_type" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN last_event_type VARCHAR(50)"))

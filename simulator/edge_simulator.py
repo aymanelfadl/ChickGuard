@@ -13,6 +13,7 @@ import requests
 # image URL sends multipart/form-data with droppings image bytes plus JSON metadata.
 BACKEND_URL = "http://localhost:8000/api/iot/readings"
 BACKEND_IMAGE_URL = "http://localhost:8000/api/iot/image-reading"
+BACKEND_HEARTBEAT_URL = "http://localhost:8000/api/iot/heartbeat"
 
 # Local Mosquitto broker and topic used for sensor-only MQTT telemetry.
 MQTT_BROKER_HOST = "localhost"
@@ -109,6 +110,15 @@ def build_payload(
         "timestamp": utc_timestamp(),
         "data": generate_sensor_data(),
         "metadata": generate_device_metadata(include_api_key=include_api_key),
+    }
+
+
+def build_heartbeat_payload() -> dict:
+    return {
+        "farm_id": FARM_ID,
+        "coop_id": COOP_ID,
+        "device_type": "esp32-cam",
+        "status": "online",
     }
 
 
@@ -228,6 +238,23 @@ def send_image_payload(payload: dict, image_path: Path) -> None:
         print(f"Connection error while sending droppings image payload: {error}")
 
 
+def send_heartbeat_payload(payload: dict) -> None:
+    """Send one device heartbeat to update backend online/offline status."""
+    print("\nSending heartbeat payload:")
+    print(json.dumps(payload, indent=2))
+
+    try:
+        response = requests.post(
+            BACKEND_HEARTBEAT_URL,
+            json=payload,
+            headers=auth_headers(),
+            timeout=10,
+        )
+        print_backend_response(response)
+    except requests.exceptions.RequestException as error:
+        print(f"Connection error while sending heartbeat payload: {error}")
+
+
 def run_sensor_http_mode(send_once: bool) -> None:
     """Run sensor-only mode over the existing HTTP endpoint."""
     print(f"Starting HTTP sensor simulator for device {DEVICE_ID}")
@@ -271,24 +298,44 @@ def run_image_http_mode(send_once: bool) -> None:
         time.sleep(SEND_INTERVAL_SECONDS)
 
 
+def run_heartbeat_mode(send_once: bool, interval_seconds: int) -> None:
+    """Send device heartbeat messages to keep the simulator online."""
+    print(f"Starting heartbeat simulator for device {DEVICE_ID}")
+    print(f"Sending heartbeats to {BACKEND_HEARTBEAT_URL} every {interval_seconds} seconds")
+
+    while True:
+        send_heartbeat_payload(build_heartbeat_payload())
+        if send_once:
+            break
+        time.sleep(interval_seconds)
+
+
 def main() -> None:
     """Choose HTTP sensor, MQTT sensor, or HTTP droppings image mode from the command line."""
     parser = argparse.ArgumentParser(description="Poultry IoT ESP32/ESP32-CAM simulator")
     parser.add_argument(
         "--mode",
-        choices=["sensor-http", "sensor-mqtt", "image-http", "sensor", "image"],
+        choices=["sensor-http", "sensor-mqtt", "image-http", "heartbeat", "sensor", "image"],
         default="sensor-http",
-        help="Use sensor-http, sensor-mqtt, or image-http. sensor/image remain aliases.",
+        help="Use sensor-http, sensor-mqtt, image-http, or heartbeat. sensor/image remain aliases.",
     )
     parser.add_argument(
         "--once",
         action="store_true",
         help="Send one payload and exit instead of looping forever.",
     )
+    parser.add_argument(
+        "--interval",
+        type=int,
+        default=SEND_INTERVAL_SECONDS,
+        help="Seconds between heartbeat messages in loop mode.",
+    )
     args = parser.parse_args()
 
     if args.mode in {"image-http", "image"}:
         run_image_http_mode(args.once)
+    elif args.mode == "heartbeat":
+        run_heartbeat_mode(args.once, args.interval)
     elif args.mode == "sensor-mqtt":
         run_sensor_mqtt_mode(args.once)
     else:

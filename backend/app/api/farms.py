@@ -11,6 +11,7 @@ from app.schemas import CameraDeviceOut, CoopCreate, CoopOut, CoopSummary, FarmC
 from app.services.auth_service import require_roles
 from app.services.farm_management_service import (
     alert_dict,
+    camera_device_dict,
     coop_lookup_keys,
     farm_lookup_keys,
     latest_prediction_dict,
@@ -121,18 +122,7 @@ def camera_device_out(db: Session, camera: models.CameraDevice) -> CameraDeviceO
         .order_by(models.ImageReading.timestamp.desc(), models.ImageReading.created_at.desc())
         .first()
     )
-    return CameraDeviceOut(
-        id=camera.id,
-        device_id=camera.device_id,
-        farm_id=camera.farm_id,
-        coop_id=camera.coop_id,
-        name=camera.name,
-        device_type=camera.device_type,
-        stream_url=camera.stream_url,
-        is_active=camera.is_active,
-        created_at=camera.created_at,
-        latest_prediction=latest_prediction_dict(latest_analysis),
-    )
+    return CameraDeviceOut(**camera_device_dict(camera, latest_analysis))
 
 
 @router.get("/api/farms", response_model=List[FarmSummary], dependencies=[manager_user])
@@ -247,15 +237,25 @@ def get_farm_report(
         .limit(limit)
         .all()
     )
+    cameras = (
+        db.query(models.CameraDevice)
+        .filter(models.CameraDevice.farm_id == farm.id)
+        .order_by(models.CameraDevice.name.asc())
+        .all()
+    )
+    device_items = [camera_device_out(db, camera).model_dump(mode="json") for camera in cameras]
 
     return {
         "farm": farm_summary(db, farm).model_dump(mode="json"),
         "number_of_coops": db.query(models.Coop).filter(models.Coop.farm_id == farm.id).count(),
-        "number_of_devices": db.query(models.CameraDevice).filter(models.CameraDevice.farm_id == farm.id).count(),
+        "number_of_devices": len(device_items),
+        "online_devices": sum(1 for device in device_items if device.get("status") == "online"),
+        "offline_devices": sum(1 for device in device_items if device.get("status") == "offline"),
         "total_readings": db.query(models.IoTReading).filter(models.IoTReading.farm_id.in_(keys)).count(),
         "total_droppings_analyses": db.query(models.ImageReading).filter(models.ImageReading.farm_id.in_(keys)).count(),
         "healthy_detections": db.query(models.ImageReading).filter(models.ImageReading.farm_id.in_(keys), models.ImageReading.prediction_status == "healthy").count(),
         "sick_detections": db.query(models.ImageReading).filter(models.ImageReading.farm_id.in_(keys), models.ImageReading.prediction_status == "sick").count(),
+        "devices": device_items,
         "recent_alerts": [alert_dict(alert) for alert in recent_alerts],
         "latest_sensor_readings": [latest_sensor_dict(reading) | {"device_id": reading.device_id, "coop_id": reading.coop_id} for reading in latest_sensors],
     }

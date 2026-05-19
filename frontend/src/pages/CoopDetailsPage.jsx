@@ -1,46 +1,63 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
+import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
 import DeviceCard from "../components/devices/DeviceCard.jsx";
 import StatusBadge from "../components/dashboard/StatusBadge.jsx";
+import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchCoop, fetchCoopDevices } from "../services/coopService.js";
 import { fetchCoopReport } from "../services/reportService.js";
 import { formatDateTime, formatHumidity, formatTemperature, formatWeight } from "../utils/formatters.js";
 
-export default function CoopDetailsPage() {
+export default function CoopDetailsPage({ realtime }) {
   const { coopId } = useParams();
   const [coop, setCoop] = useState(null);
   const [devices, setDevices] = useState([]);
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-  useEffect(() => {
-    async function loadCoop() {
+  const loadCoop = useCallback(async ({ showLoading = true } = {}) => {
+    if (showLoading) {
       setIsLoading(true);
       setError(null);
-      try {
-        const [coopData, deviceData, reportData] = await Promise.all([
-          fetchCoop(coopId),
-          fetchCoopDevices(coopId),
-          fetchCoopReport(coopId),
-        ]);
-        setCoop(coopData);
-        setDevices(deviceData);
-        setReport(reportData);
-      } catch (loadError) {
+    }
+
+    try {
+      const [coopData, deviceData, reportData] = await Promise.all([
+        fetchCoop(coopId),
+        fetchCoopDevices(coopId),
+        fetchCoopReport(coopId),
+      ]);
+      setCoop(coopData);
+      setDevices(deviceData);
+      setReport(reportData);
+      setLastUpdatedAt(new Date().toISOString());
+      return true;
+    } catch (loadError) {
+      if (showLoading) {
         setError(loadError.message || "Unable to load coop.");
-      } finally {
+      }
+      return false;
+    } finally {
+      if (showLoading) {
         setIsLoading(false);
       }
     }
-
-    loadCoop();
   }, [coopId]);
+  const { isRefreshing, lastRefreshEventType, liveUpdateReceived, refreshManually } = useRealtimeRefresh(
+    realtime,
+    loadCoop,
+  );
+
+  useEffect(() => {
+    loadCoop();
+  }, [loadCoop]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -55,6 +72,14 @@ export default function CoopDetailsPage() {
 
   return (
     <div className="space-y-6">
+      <LiveUpdateStatus
+        realtimeStatus={realtime?.status}
+        lastUpdatedAt={lastUpdatedAt}
+        liveUpdateReceived={liveUpdateReceived}
+        lastEventType={lastRefreshEventType}
+        isRefreshing={isRefreshing}
+        onRefresh={refreshManually}
+      />
       <Card
         title={coop?.name || "Coop"}
         description={coop?.description || "Coop overview, cameras, sensor history, and health alerts."}

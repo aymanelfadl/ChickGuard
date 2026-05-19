@@ -9,13 +9,32 @@ from app.database import get_db
 from app.schemas import CameraDeviceOut, DeviceDetailOut, DeviceOut, DeviceRegisterAck, DeviceRegisterCreate
 from app.services.auth_service import get_current_user, require_roles
 from app.services.device_auth_service import hash_api_key
-from app.services.farm_management_service import latest_prediction_dict, latest_sensor_dict, sync_hierarchy_from_registered_devices
+from app.services.device_status_service import device_status_fields
+from app.services.farm_management_service import (
+    camera_device_dict,
+    latest_prediction_dict,
+    latest_sensor_dict,
+    sync_hierarchy_from_registered_devices,
+)
 
 
 router = APIRouter(prefix="/api/devices", tags=["devices"])
 require_dashboard_user = Depends(get_current_user)
 require_manager_user = Depends(require_roles("admin", "manager"))
 require_admin_user = Depends(require_roles("admin"))
+
+
+def device_out(device: models.Device) -> DeviceOut:
+    return DeviceOut(
+        id=device.id,
+        device_id=device.device_id,
+        device_type=device.device_type,
+        farm_id=device.farm_id,
+        coop_id=device.coop_id,
+        is_active=device.is_active,
+        created_at=device.created_at,
+        **device_status_fields(device),
+    )
 
 
 @router.post("/register", response_model=DeviceRegisterAck)
@@ -58,7 +77,8 @@ def register_device(
 def list_devices(db: Session = Depends(get_db)) -> list[models.Device]:
     """List registered devices without exposing API key hashes."""
     sync_hierarchy_from_registered_devices(db)
-    return db.query(models.Device).order_by(models.Device.created_at.desc()).all()
+    devices = db.query(models.Device).order_by(models.Device.created_at.desc()).all()
+    return [device_out(device) for device in devices]
 
 
 @router.get("/{device_id}", response_model=DeviceDetailOut, dependencies=[require_manager_user])
@@ -93,22 +113,8 @@ def get_device(device_id: str, db: Session = Depends(get_db)) -> DeviceDetailOut
         coop_id=device.coop_id,
         is_active=device.is_active,
         created_at=device.created_at,
-        camera=(
-            CameraDeviceOut(
-                id=camera.id,
-                device_id=camera.device_id,
-                farm_id=camera.farm_id,
-                coop_id=camera.coop_id,
-                name=camera.name,
-                device_type=camera.device_type,
-                stream_url=camera.stream_url,
-                is_active=camera.is_active,
-                created_at=camera.created_at,
-                latest_prediction=latest_prediction_dict(latest_analysis),
-            )
-            if camera
-            else None
-        ),
+        **device_status_fields(device),
+        camera=CameraDeviceOut(**camera_device_dict(camera, latest_analysis)) if camera else None,
         latest_prediction=latest_prediction_dict(latest_analysis),
         latest_sensor=latest_sensor_dict(latest_sensor),
     )

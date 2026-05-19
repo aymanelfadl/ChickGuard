@@ -1,44 +1,62 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
+import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
 import CoopCard from "../components/coop/CoopCard.jsx";
+import DeviceCard from "../components/devices/DeviceCard.jsx";
+import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchFarm, fetchFarmCoops } from "../services/farmService.js";
 import { fetchFarmReport } from "../services/reportService.js";
 
-export default function FarmDetailsPage() {
+export default function FarmDetailsPage({ realtime }) {
   const { farmId } = useParams();
   const [farm, setFarm] = useState(null);
   const [coops, setCoops] = useState([]);
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-  useEffect(() => {
-    async function loadFarm() {
+  const loadFarm = useCallback(async ({ showLoading = true } = {}) => {
+    if (showLoading) {
       setIsLoading(true);
       setError(null);
-      try {
-        const [farmData, coopData, reportData] = await Promise.all([
-          fetchFarm(farmId),
-          fetchFarmCoops(farmId),
-          fetchFarmReport(farmId),
-        ]);
-        setFarm(farmData);
-        setCoops(coopData);
-        setReport(reportData);
-      } catch (loadError) {
+    }
+
+    try {
+      const [farmData, coopData, reportData] = await Promise.all([
+        fetchFarm(farmId),
+        fetchFarmCoops(farmId),
+        fetchFarmReport(farmId),
+      ]);
+      setFarm(farmData);
+      setCoops(coopData);
+      setReport(reportData);
+      setLastUpdatedAt(new Date().toISOString());
+      return true;
+    } catch (loadError) {
+      if (showLoading) {
         setError(loadError.message || "Unable to load farm.");
-      } finally {
+      }
+      return false;
+    } finally {
+      if (showLoading) {
         setIsLoading(false);
       }
     }
-
-    loadFarm();
   }, [farmId]);
+  const { isRefreshing, lastRefreshEventType, liveUpdateReceived, refreshManually } = useRealtimeRefresh(
+    realtime,
+    loadFarm,
+  );
+
+  useEffect(() => {
+    loadFarm();
+  }, [loadFarm]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -50,6 +68,14 @@ export default function FarmDetailsPage() {
 
   return (
     <div className="space-y-6">
+      <LiveUpdateStatus
+        realtimeStatus={realtime?.status}
+        lastUpdatedAt={lastUpdatedAt}
+        liveUpdateReceived={liveUpdateReceived}
+        lastEventType={lastRefreshEventType}
+        isRefreshing={isRefreshing}
+        onRefresh={refreshManually}
+      />
       <Card
         title={farm?.name || "Farm"}
         description={farm?.location || "Farm overview and operational status."}
@@ -62,6 +88,8 @@ export default function FarmDetailsPage() {
         <div className="grid gap-4 sm:grid-cols-4">
           <Metric label="Coops" value={farm?.number_of_coops} />
           <Metric label="Devices" value={farm?.number_of_devices} />
+          <Metric label="Online" value={report?.online_devices ?? 0} />
+          <Metric label="Offline" value={report?.offline_devices ?? 0} danger />
           <Metric label="Active Alerts" value={farm?.active_alerts} danger />
           <Metric label="Latest Status" value={farm?.latest_health_status || "Unknown"} />
         </div>
@@ -80,6 +108,22 @@ export default function FarmDetailsPage() {
               <CoopCard key={coop.id} coop={coop} />
             ))}
           </div>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-bold text-[#102A1C]">Devices</h2>
+          <p className="text-sm text-[#64748B]">Camera/device status and live stream placeholders for this farm.</p>
+        </div>
+        {report?.devices?.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {report.devices.map((device) => (
+              <DeviceCard key={device.device_id} device={device} />
+            ))}
+          </div>
+        ) : (
+          <EmptyState title="No farm devices" message="Registered devices for this farm will appear here." />
         )}
       </section>
 

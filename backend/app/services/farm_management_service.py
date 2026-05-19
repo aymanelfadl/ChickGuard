@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app import models
+from app.services.device_status_service import device_status_fields
 
 
 def format_utc(value: datetime | None) -> str | None:
@@ -69,6 +70,9 @@ def sync_hierarchy_from_registered_devices(db: Session) -> None:
                 device_type=device.device_type,
                 stream_url=None,
                 is_active=device.is_active,
+                last_seen_at=device.last_seen_at,
+                status=device.status,
+                last_event_type=device.last_event_type,
             )
             db.add(camera)
             changed = True
@@ -78,12 +82,18 @@ def sync_hierarchy_from_registered_devices(db: Session) -> None:
                 or camera.coop_id != coop.id
                 or camera.device_type != device.device_type
                 or camera.is_active != device.is_active
+                or camera.last_seen_at != device.last_seen_at
+                or camera.status != device.status
+                or camera.last_event_type != device.last_event_type
             ):
                 changed = True
             camera.farm_id = farm.id
             camera.coop_id = coop.id
             camera.device_type = device.device_type
             camera.is_active = device.is_active
+            camera.last_seen_at = device.last_seen_at
+            camera.status = device.status
+            camera.last_event_type = device.last_event_type
 
     if changed:
         db.commit()
@@ -122,6 +132,22 @@ def latest_sensor_dict(reading: models.IoTReading | None) -> dict | None:
         "battery_percent": reading.battery_percent,
         "wifi_rssi": reading.wifi_rssi,
         "timestamp": format_utc(reading.timestamp),
+    }
+
+
+def camera_device_dict(camera: models.CameraDevice, latest_analysis: models.ImageReading | None = None) -> dict:
+    return {
+        "id": camera.id,
+        "device_id": camera.device_id,
+        "farm_id": camera.farm_id,
+        "coop_id": camera.coop_id,
+        "name": camera.name,
+        "device_type": camera.device_type,
+        "stream_url": camera.stream_url,
+        "is_active": camera.is_active,
+        "created_at": camera.created_at,
+        "latest_prediction": latest_prediction_dict(latest_analysis),
+        **device_status_fields(camera),
     }
 
 

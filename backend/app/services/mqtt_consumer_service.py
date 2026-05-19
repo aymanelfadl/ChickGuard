@@ -11,6 +11,8 @@ from app.config import MQTT_BROKER_HOST, MQTT_BROKER_PORT, MQTT_TOPIC_READINGS_S
 from app.database import SessionLocal
 from app.schemas import IoTReadingCreate
 from app.services.device_auth_service import get_authenticated_device, validate_payload_matches_device
+from app.services.device_status_service import device_status_event_payload, update_device_presence
+from app.services.realtime_event_service import realtime_event_manager
 
 
 logger = logging.getLogger(__name__)
@@ -98,7 +100,17 @@ def _on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage) -> Non
     try:
         device = get_authenticated_device(db, payload.device.device_id, api_key)
         validate_payload_matches_device(payload, device)
-        reading_id = _store_mqtt_reading(db, payload)
+        reading_id = _store_mqtt_reading(db, payload, device)
+        db.refresh(device)
+        realtime_event_manager.broadcast(
+            "sensor_reading_created",
+            {
+                "device_id": payload.device.device_id,
+                "farm_id": payload.location.farm_id,
+                "coop_id": payload.location.coop_id,
+            },
+        )
+        realtime_event_manager.broadcast("device_status_updated", device_status_event_payload(device))
         logger.info("Stored MQTT reading id=%s message_id=%s", reading_id, payload.message_id)
     except HTTPException as error:
         logger.warning(
@@ -117,7 +129,7 @@ def _on_message(client: mqtt.Client, userdata, message: mqtt.MQTTMessage) -> Non
         db.close()
 
 
-def _store_mqtt_reading(db, payload: IoTReadingCreate) -> int:
+def _store_mqtt_reading(db, payload: IoTReadingCreate, device: models.Device) -> int:
     metadata = payload.metadata
     reading = models.IoTReading(
         schema_version=payload.schema_version,
@@ -137,6 +149,7 @@ def _store_mqtt_reading(db, payload: IoTReadingCreate) -> int:
     )
 
     db.add(reading)
+    update_device_presence(db, device, "mqtt_sensor_reading")
     db.commit()
     db.refresh(reading)
     return reading.id

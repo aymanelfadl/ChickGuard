@@ -1,6 +1,18 @@
 import { Activity, LogOut, RefreshCw, UserCircle } from "lucide-react";
 
-export default function Header({ isRefreshing, onRefresh, user, onLogout }) {
+function realtimeLabel(status) {
+  if (status === "connected") {
+    return "Live operations";
+  }
+  if (status === "connecting") {
+    return "Connecting realtime";
+  }
+  return "Realtime disconnected";
+}
+
+export default function Header({ isRefreshing, onRefresh, realtimeStatus, user, onLogout }) {
+  const isRealtimeDisconnected = realtimeStatus === "disconnected" || realtimeStatus === "error";
+
   return (
     <header className="rounded-lg border border-[#BFE7C8] bg-gradient-to-br from-[#F8FBF8] via-[#ECFDF3] to-[#DCFCE7] p-5 shadow-[0_24px_70px_rgba(20,83,45,0.12)] sm:p-7">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -19,8 +31,11 @@ export default function Header({ isRefreshing, onRefresh, user, onLogout }) {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:justify-end">
           <div className="inline-flex items-center gap-2 rounded-lg border border-[#CFE8D7] bg-white/85 px-4 py-3 text-sm font-medium text-[#14532D] shadow-sm">
-            <Activity className="h-4 w-4 text-[#16A34A]" aria-hidden="true" />
-            Live operations
+            <Activity
+              className={`h-4 w-4 ${isRealtimeDisconnected ? "text-[#DC2626]" : "text-[#16A34A]"}`}
+              aria-hidden="true"
+            />
+            {realtimeLabel(realtimeStatus)}
           </div>
           <div className="inline-flex min-w-0 items-center gap-2 rounded-lg border border-[#CFE8D7] bg-white/85 px-4 py-3 text-sm text-[#102A1C] shadow-sm">
             <UserCircle className="h-4 w-4 shrink-0 text-[#16A34A]" aria-hidden="true" />
