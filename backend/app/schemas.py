@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -126,6 +126,20 @@ class DeviceRegisterAck(BaseModel):
     device_id: str
 
 
+class DeviceHeartbeatCreate(BaseModel):
+    farm_id: str = Field(..., min_length=1)
+    coop_id: str = Field(..., min_length=1)
+    device_type: str = Field(..., min_length=1)
+    status: Literal["online"]
+
+
+class DeviceHeartbeatAck(BaseModel):
+    status: str
+    message: str
+    device_id: str
+    last_seen_at: Optional[str]
+
+
 class DeviceOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -135,6 +149,9 @@ class DeviceOut(BaseModel):
     farm_id: str
     coop_id: str
     is_active: bool
+    status: str
+    last_seen_at: Optional[str]
+    last_event_type: Optional[str]
     created_at: datetime
 
 
@@ -195,6 +212,9 @@ class CameraDeviceOut(BaseModel):
     device_type: str
     stream_url: Optional[str]
     is_active: bool
+    status: str
+    last_seen_at: Optional[str]
+    last_event_type: Optional[str]
     created_at: datetime
     latest_prediction: Optional[dict] = None
 

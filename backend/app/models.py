@@ -17,6 +17,9 @@ class Device(Base):
     coop_id = Column(String(100), index=True, nullable=False)
     api_key_hash = Column(String(255), nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    last_seen_at = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(20), nullable=False, default="offline")
+    last_event_type = Column(String(50), nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -88,6 +91,9 @@ class CameraDevice(Base):
     device_type = Column(String(100), nullable=False)
     stream_url = Column(String(500), nullable=True)
     is_active = Column(Boolean, nullable=False, default=True)
+    last_seen_at = Column(DateTime(timezone=True), nullable=True)
+    status = Column(String(20), nullable=False, default="offline")
+    last_event_type = Column(String(50), nullable=True)
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

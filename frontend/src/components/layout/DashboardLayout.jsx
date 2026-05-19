@@ -1,10 +1,11 @@
-import { AlertTriangle, BarChart3, Building2, Camera, LayoutDashboard, Settings } from "lucide-react";
+import { AlertTriangle, BarChart3, Building2, Camera, Images, LayoutDashboard, Settings } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const navItems = [
   { label: "Dashboard", to: "/", icon: LayoutDashboard, roles: ["admin", "manager", "viewer"] },
   { label: "Farms", to: "/farms", icon: Building2, roles: ["admin", "manager"] },
   { label: "Devices / Cameras", to: "/devices", icon: Camera, roles: ["admin", "manager"] },
+  { label: "Image Gallery", to: "/gallery", icon: Images, roles: ["admin", "manager", "viewer"] },
   { label: "Alerts", to: "/alerts", icon: AlertTriangle, roles: ["admin", "manager", "viewer"] },
   { label: "Reports", to: "/reports", icon: BarChart3, roles: ["admin", "manager", "viewer"] },
   { label: "Settings", to: "/settings", icon: Settings, roles: ["admin"] },

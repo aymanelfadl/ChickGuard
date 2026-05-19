@@ -1,46 +1,68 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
+import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
 import DeviceCard from "../components/devices/DeviceCard.jsx";
+import RecentImageGrid from "../components/gallery/RecentImageGrid.jsx";
 import StatusBadge from "../components/dashboard/StatusBadge.jsx";
+import { useImageGallery } from "../hooks/useImageGallery.js";
+import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchCoop, fetchCoopDevices } from "../services/coopService.js";
 import { fetchCoopReport } from "../services/reportService.js";
 import { formatDateTime, formatHumidity, formatTemperature, formatWeight } from "../utils/formatters.js";
 
-export default function CoopDetailsPage() {
+export default function CoopDetailsPage({ realtime }) {
   const { coopId } = useParams();
   const [coop, setCoop] = useState(null);
   const [devices, setDevices] = useState([]);
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const galleryCoopId = coop?.name || coopId;
+  const recentImages = useImageGallery({ coop_id: galleryCoopId, limit: 6, offset: 0 });
 
-  useEffect(() => {
-    async function loadCoop() {
+  const loadCoop = useCallback(async ({ showLoading = true } = {}) => {
+    if (showLoading) {
       setIsLoading(true);
       setError(null);
-      try {
-        const [coopData, deviceData, reportData] = await Promise.all([
-          fetchCoop(coopId),
-          fetchCoopDevices(coopId),
-          fetchCoopReport(coopId),
-        ]);
-        setCoop(coopData);
-        setDevices(deviceData);
-        setReport(reportData);
-      } catch (loadError) {
+    }
+
+    try {
+      const [coopData, deviceData, reportData] = await Promise.all([
+        fetchCoop(coopId),
+        fetchCoopDevices(coopId),
+        fetchCoopReport(coopId),
+        recentImages.refreshGallery({ showLoading: false }),
+      ]);
+      setCoop(coopData);
+      setDevices(deviceData);
+      setReport(reportData);
+      setLastUpdatedAt(new Date().toISOString());
+      return true;
+    } catch (loadError) {
+      if (showLoading) {
         setError(loadError.message || "Unable to load coop.");
-      } finally {
+      }
+      return false;
+    } finally {
+      if (showLoading) {
         setIsLoading(false);
       }
     }
+  }, [coopId, recentImages.refreshGallery]);
+  const { isRefreshing, lastRefreshEventType, liveUpdateReceived, refreshManually } = useRealtimeRefresh(
+    realtime,
+    loadCoop,
+  );
 
+  useEffect(() => {
     loadCoop();
-  }, [coopId]);
+  }, [loadCoop]);
 
   if (isLoading) {
     return <LoadingState />;
@@ -55,13 +77,26 @@ export default function CoopDetailsPage() {
 
   return (
     <div className="space-y-6">
+      <LiveUpdateStatus
+        realtimeStatus={realtime?.status}
+        lastUpdatedAt={lastUpdatedAt}
+        liveUpdateReceived={liveUpdateReceived}
+        lastEventType={lastRefreshEventType}
+        isRefreshing={isRefreshing}
+        onRefresh={refreshManually}
+      />
       <Card
         title={coop?.name || "Coop"}
         description={coop?.description || "Coop overview, cameras, sensor history, and health alerts."}
         action={
-          <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to="/reports">
-            Report
-          </Link>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
+              View coop gallery
+            </Link>
+            <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to="/reports">
+              Report
+            </Link>
+          </div>
         }
       >
         <div className="grid gap-4 sm:grid-cols-3">
@@ -119,6 +154,14 @@ export default function CoopDetailsPage() {
           )}
         </Card>
       </section>
+
+      <Card title="Recent Droppings Images" description="Latest visual evidence from this coop.">
+        <RecentImageGrid
+          images={recentImages.items}
+          emptyTitle="No coop images yet"
+          emptyMessage="Recent poultry droppings images from this coop will appear here."
+        />
+      </Card>
 
       <Card title="Health Alerts" description="Sick detections from droppings analysis for this coop.">
         {report?.recent_alerts?.length ? (

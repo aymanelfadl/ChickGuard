@@ -10,15 +10,33 @@ from sqlalchemy.orm import Session
 from app import models
 from app.config import DEFAULT_LIMIT, MAX_LIMIT
 from app.database import get_db
-from app.schemas import ImageReadingOut, IoTReadingAck, IoTReadingCreate, IoTReadingOut
+from app.schemas import (
+    DeviceHeartbeatAck,
+    DeviceHeartbeatCreate,
+    ImageReadingOut,
+    IoTReadingAck,
+    IoTReadingCreate,
+    IoTReadingOut,
+)
 from app.services.device_auth_service import get_authenticated_device, validate_payload_matches_device
 from app.services.auth_service import get_current_user
+from app.services.device_status_service import (
+    device_status_event_payload,
+    format_utc,
+    update_device_presence,
+)
+from app.services.farm_management_service import sync_hierarchy_from_registered_devices
 from app.services.prediction_service import run_prediction
+from app.services.realtime_event_service import realtime_event_manager
 from app.services.storage_service import save_uploaded_image
 
 
 router = APIRouter(prefix="/api/iot", tags=["iot"])
 require_dashboard_user = Depends(get_current_user)
+
+
+def broadcast_device_status(device: models.Device) -> None:
+    realtime_event_manager.broadcast("device_status_updated", device_status_event_payload(device))
 
 
 def parse_image_metadata(metadata_json: str) -> IoTReadingCreate:
@@ -87,6 +105,7 @@ def create_iot_reading(
     )
 
     db.add(reading)
+    update_device_presence(db, authenticated_device, "http_sensor_reading")
     try:
         db.commit()
     except IntegrityError as error:
@@ -97,6 +116,16 @@ def create_iot_reading(
         ) from error
 
     db.refresh(reading)
+    db.refresh(authenticated_device)
+    realtime_event_manager.broadcast(
+        "sensor_reading_created",
+        {
+            "device_id": reading.device_id,
+            "farm_id": reading.farm_id,
+            "coop_id": reading.coop_id,
+        },
+    )
+    broadcast_device_status(authenticated_device)
 
     return IoTReadingAck(
         status="success",
@@ -179,6 +208,7 @@ def create_image_reading(
     )
 
     db.add(image_reading)
+    update_device_presence(db, authenticated_device, "droppings_analysis")
     try:
         db.commit()
     except IntegrityError as error:
@@ -190,6 +220,26 @@ def create_image_reading(
         ) from error
 
     db.refresh(image_reading)
+    db.refresh(authenticated_device)
+    broadcast_device_status(authenticated_device)
+    if prediction:
+        realtime_event_manager.broadcast(
+            "droppings_analysis_created",
+            {
+                "device_id": image_reading.device_id,
+                "prediction_status": image_reading.prediction_status,
+                "disease_type": image_reading.disease_type,
+            },
+        )
+        if image_reading.prediction_status == "sick":
+            realtime_event_manager.broadcast(
+                "health_alert_created",
+                {
+                    "device_id": image_reading.device_id,
+                    "disease_type": image_reading.disease_type,
+                    "confidence": image_reading.confidence,
+                },
+            )
 
     response = {
         "status": "success" if prediction else "partial_success",
@@ -207,6 +257,33 @@ def create_image_reading(
         response["warning"] = prediction_warning
 
     return response
+
+
+@router.post("/heartbeat", response_model=DeviceHeartbeatAck)
+def device_heartbeat(
+    payload: DeviceHeartbeatCreate,
+    db: Session = Depends(get_db),
+    authenticated_device: models.Device = Depends(require_authenticated_device),
+) -> DeviceHeartbeatAck:
+    if payload.farm_id != authenticated_device.farm_id or payload.coop_id != authenticated_device.coop_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Heartbeat location does not match authenticated device registry",
+        )
+
+    authenticated_device.device_type = payload.device_type
+    update_device_presence(db, authenticated_device, "heartbeat")
+    db.commit()
+    sync_hierarchy_from_registered_devices(db)
+    db.refresh(authenticated_device)
+    broadcast_device_status(authenticated_device)
+
+    return DeviceHeartbeatAck(
+        status="success",
+        message="Heartbeat received",
+        device_id=authenticated_device.device_id,
+        last_seen_at=format_utc(authenticated_device.last_seen_at),
+    )
 
 
 @router.get("/image-readings", response_model=List[ImageReadingOut], dependencies=[require_dashboard_user])

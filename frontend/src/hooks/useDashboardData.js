@@ -20,10 +20,13 @@ export function useDashboardData() {
   const [alerts, setAlerts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
 
-  const refreshDashboardData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const refreshDashboardData = useCallback(async ({ showLoading = true } = {}) => {
+    if (showLoading) {
+      setIsLoading(true);
+      setError(null);
+    }
 
     try {
       const [overviewData, latestStatusData, healthHistoryData, alertsData] = await Promise.all([
@@ -37,12 +40,19 @@ export function useDashboardData() {
       setLatestStatus(normalizeLatestStatus(latestStatusData));
       setHealthHistory(normalizeHealthHistory(healthHistoryData));
       setAlerts(normalizeAlerts(alertsData));
+      setLastUpdatedAt(new Date().toISOString());
+      return true;
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Unable to load dashboard data from the backend.",
-      );
+      if (showLoading) {
+        setError(
+          err instanceof Error ? err.message : "Unable to load dashboard data from the backend.",
+        );
+      }
+      return false;
     } finally {
-      setIsLoading(false);
+      if (showLoading) {
+        setIsLoading(false);
+      }
     }
   }, []);
 
@@ -57,6 +67,7 @@ export function useDashboardData() {
     alerts,
     isLoading,
     error,
+    lastUpdatedAt,
     refreshDashboardData,
   };
 }

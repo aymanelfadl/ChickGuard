@@ -29,6 +29,11 @@ export const DEVICE_ENDPOINTS = {
   device: (deviceId) => `/api/devices/${deviceId}`,
 };
 
+export const IMAGE_GALLERY_ENDPOINTS = {
+  gallery: "/api/image-gallery",
+  detail: (readingId) => `/api/image-gallery/${readingId}`,
+};
+
 export const REPORT_ENDPOINTS = {
   options: "/api/reports/options",
   farmReport: (farmId) => `/api/farms/${farmId}/report`,
