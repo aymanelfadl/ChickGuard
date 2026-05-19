@@ -66,9 +66,12 @@ def sync_hierarchy_from_registered_devices(db: Session) -> None:
                 device_id=device.device_id,
                 farm_id=farm.id,
                 coop_id=coop.id,
-                name=device.device_id,
+                name=device.name or device.device_id,
                 device_type=device.device_type,
-                stream_url=None,
+                camera_type=device.camera_type,
+                stream_url=device.stream_url,
+                location_label=device.location_label,
+                description=device.description,
                 is_active=device.is_active,
                 last_seen_at=device.last_seen_at,
                 status=device.status,
@@ -80,7 +83,12 @@ def sync_hierarchy_from_registered_devices(db: Session) -> None:
             if (
                 camera.farm_id != farm.id
                 or camera.coop_id != coop.id
+                or camera.name != (device.name or device.device_id)
                 or camera.device_type != device.device_type
+                or camera.camera_type != device.camera_type
+                or camera.stream_url != device.stream_url
+                or camera.location_label != device.location_label
+                or camera.description != device.description
                 or camera.is_active != device.is_active
                 or camera.last_seen_at != device.last_seen_at
                 or camera.status != device.status
@@ -89,7 +97,12 @@ def sync_hierarchy_from_registered_devices(db: Session) -> None:
                 changed = True
             camera.farm_id = farm.id
             camera.coop_id = coop.id
+            camera.name = device.name or device.device_id
             camera.device_type = device.device_type
+            camera.camera_type = device.camera_type
+            camera.stream_url = device.stream_url
+            camera.location_label = device.location_label
+            camera.description = device.description
             camera.is_active = device.is_active
             camera.last_seen_at = device.last_seen_at
             camera.status = device.status
@@ -143,7 +156,11 @@ def camera_device_dict(camera: models.CameraDevice, latest_analysis: models.Imag
         "coop_id": camera.coop_id,
         "name": camera.name,
         "device_type": camera.device_type,
+        "camera_type": camera.camera_type,
         "stream_url": camera.stream_url,
+        "has_stream_url": bool(camera.stream_url),
+        "location_label": camera.location_label,
+        "description": camera.description,
         "is_active": camera.is_active,
         "created_at": camera.created_at,
         "latest_prediction": latest_prediction_dict(latest_analysis),

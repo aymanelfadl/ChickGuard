@@ -4,13 +4,14 @@ import Card from "../common/Card.jsx";
 import StatusBadge from "../dashboard/StatusBadge.jsx";
 import { formatDateTime, formatPercent } from "../../utils/formatters.js";
 
-export default function DeviceCard({ device }) {
+export default function DeviceCard({ device, canEdit = false, onEdit }) {
   const prediction = device.latest_prediction || device.latestPrediction;
   const isActive = device.is_active ?? device.isActive;
   const status = device.status || (isActive ? "unknown" : "offline");
   const lastSeenAt = device.last_seen_at || device.lastSeenAt;
   const lastEventType = device.last_event_type || device.lastEventType;
   const deviceId = device.device_id || device.deviceId;
+  const streamUrl = device.stream_url || device.streamUrl;
 
   return (
     <Card
@@ -24,12 +25,30 @@ export default function DeviceCard({ device }) {
               Details
             </Link>
           ) : null}
+          {canEdit ? (
+            <button
+              type="button"
+              className="rounded-full border border-[#CFE8D7] px-3 py-1.5 text-xs font-semibold text-[#14532D]"
+              onClick={onEdit}
+            >
+              Edit
+            </button>
+          ) : null}
         </div>
       }
     >
       <div className="space-y-4">
         <div className="rounded-lg border border-dashed border-[#BBF7D0] bg-[#F8FBF8] p-4 text-sm text-[#475569]">
-          Live stream placeholder - future ESP32-CAM/IP camera integration
+          {streamUrl ? (
+            <span>
+              Stream URL configured:{" "}
+              <a className="font-semibold text-[#14532D] underline" href={streamUrl} target="_blank" rel="noreferrer">
+                Open stream
+              </a>
+            </span>
+          ) : (
+            "Live stream placeholder - no stream URL configured yet"
+          )}
         </div>
         <div className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
@@ -53,6 +72,18 @@ export default function DeviceCard({ device }) {
           <div>
             <p className="text-xs font-semibold uppercase text-[#64748B]">Type</p>
             <p className="mt-1 font-semibold text-[#102A1C]">{device.device_type || device.deviceType || "N/A"}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase text-[#64748B]">Camera Type</p>
+            <p className="mt-1 font-semibold text-[#102A1C]">{device.camera_type || device.cameraType || "N/A"}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase text-[#64748B]">Stream URL</p>
+            <p className="mt-1 font-semibold text-[#102A1C]">{streamUrl ? "Configured" : "Not set"}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase text-[#64748B]">Location</p>
+            <p className="mt-1 font-semibold text-[#102A1C]">{device.location_label || device.locationLabel || "N/A"}</p>
           </div>
           <div>
             <p className="text-xs font-semibold uppercase text-[#64748B]">Last Event</p>

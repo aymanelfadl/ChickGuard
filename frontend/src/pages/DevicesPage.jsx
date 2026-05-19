@@ -10,7 +10,7 @@ import DeviceCard from "../components/devices/DeviceCard.jsx";
 import DeviceForm from "../components/forms/DeviceForm.jsx";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchFarmCoops, fetchFarms } from "../services/farmService.js";
-import { fetchDevice, fetchDevices, registerDevice } from "../services/deviceService.js";
+import { fetchDevice, fetchDevices, registerDevice, updateDevice } from "../services/deviceService.js";
 
 export default function DevicesPage({ realtime, user }) {
   const [devices, setDevices] = useState([]);
@@ -22,9 +22,11 @@ export default function DevicesPage({ realtime, user }) {
   const [error, setError] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [editingDevice, setEditingDevice] = useState(null);
   const [isSubmittingDevice, setIsSubmittingDevice] = useState(false);
   const [deviceSubmitError, setDeviceSubmitError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [generatedApiKey, setGeneratedApiKey] = useState("");
   const isAdmin = user?.role === "admin";
 
   const loadDevices = useCallback(async ({ showLoading = true } = {}) => {
@@ -99,7 +101,18 @@ export default function DevicesPage({ realtime, user }) {
   async function openRegisterModal() {
     setDeviceSubmitError("");
     setSuccessMessage("");
+    setGeneratedApiKey("");
     setIsRegisterOpen(true);
+    if (!farms.length) {
+      await loadFarmsForRegistration();
+    }
+  }
+
+  async function openEditModal(device) {
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    setGeneratedApiKey("");
+    setEditingDevice(device);
     if (!farms.length) {
       await loadFarmsForRegistration();
     }
@@ -112,12 +125,38 @@ export default function DevicesPage({ realtime, user }) {
     try {
       const response = await registerDevice(payload);
       setIsRegisterOpen(false);
+      if (response?.api_key) {
+        setGeneratedApiKey(response.api_key);
+      }
       setSuccessMessage(
-        `${response?.device_id || payload.device_id} registered. Configure the same API key on the physical device or simulator.`,
+        response?.api_key
+          ? `${response?.device_id || payload.device_id} registered. Copy the generated API key before leaving this page.`
+          : `${response?.device_id || payload.device_id} registered. Configure the same API key on the physical device or simulator.`,
       );
       await loadDevices({ showLoading: false });
     } catch (registerError) {
       setDeviceSubmitError(registerError.message || "Unable to register device.");
+    } finally {
+      setIsSubmittingDevice(false);
+    }
+  }
+
+  async function handleUpdateDevice(payload) {
+    if (!editingDevice?.device_id) {
+      return;
+    }
+
+    setIsSubmittingDevice(true);
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    setGeneratedApiKey("");
+    try {
+      const updatedDevice = await updateDevice(editingDevice.device_id, payload);
+      setEditingDevice(null);
+      setSuccessMessage(`${updatedDevice?.name || updatedDevice?.device_id || editingDevice.device_id} updated.`);
+      await loadDevices({ showLoading: false });
+    } catch (updateError) {
+      setDeviceSubmitError(updateError.message || "Unable to update device.");
     } finally {
       setIsSubmittingDevice(false);
     }
@@ -161,6 +200,14 @@ export default function DevicesPage({ realtime, user }) {
           {successMessage}
         </p>
       ) : null}
+      {generatedApiKey ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="font-bold">Copy this API key now. It will not be shown again.</p>
+          <code className="mt-2 block overflow-x-auto rounded bg-white px-3 py-2 font-mono text-xs text-[#102A1C]">
+            {generatedApiKey}
+          </code>
+        </div>
+      ) : null}
       {!devices.length ? (
         <Card title="No Devices">
           <div className="space-y-4">
@@ -186,13 +233,20 @@ export default function DevicesPage({ realtime, user }) {
               device={{
                 ...(device.camera || device),
                 device_id: device.device_id,
+                name: device.name || device.camera?.name,
                 device_type: device.device_type,
+                camera_type: device.camera_type || device.camera?.camera_type,
                 farm_id: device.farm_id,
                 coop_id: device.coop_id,
+                stream_url: device.stream_url || device.camera?.stream_url,
+                location_label: device.location_label || device.camera?.location_label,
+                description: device.description || device.camera?.description,
                 status: device.status,
                 last_seen_at: device.last_seen_at,
                 last_event_type: device.last_event_type,
               }}
+              canEdit={isAdmin}
+              onEdit={() => openEditModal(device)}
             />
           ))}
         </div>
@@ -210,6 +264,27 @@ export default function DevicesPage({ realtime, user }) {
           onFarmChange={handleRegistrationFarmChange}
           onSubmit={handleRegisterDevice}
           onCancel={() => setIsRegisterOpen(false)}
+          isSubmitting={isSubmittingDevice}
+          isLoadingCoops={isLoadingCoops}
+          error={deviceSubmitError}
+        />
+      </Modal>
+
+      <Modal
+        title="Edit Device / Camera"
+        description="Update dashboard camera metadata and device registry placement."
+        isOpen={Boolean(editingDevice)}
+        onClose={() => setEditingDevice(null)}
+      >
+        <DeviceForm
+          key={editingDevice?.device_id || "edit-device"}
+          mode="edit"
+          initialValues={editingDevice}
+          farms={farms}
+          coops={coops}
+          onFarmChange={handleRegistrationFarmChange}
+          onSubmit={handleUpdateDevice}
+          onCancel={() => setEditingDevice(null)}
           isSubmitting={isSubmittingDevice}
           isLoadingCoops={isLoadingCoops}
           error={deviceSubmitError}

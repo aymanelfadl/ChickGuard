@@ -17,9 +17,19 @@ Farm
 ```
 
 `Device` remains the authentication registry for ESP32/simulator ingestion.
-`CameraDevice` stores product-facing camera metadata such as name, status, and a
-future `stream_url`. Live video streaming is not implemented yet; reports and UI
-cards expose placeholders for future ESP32-CAM/IP camera integration.
+`CameraDevice` stores product-facing camera metadata such as name, camera type,
+location label, status, and a future `stream_url`. Live video streaming is not
+implemented yet; reports and UI cards expose placeholders for future
+ESP32-CAM/IP camera integration.
+
+`device_type` identifies the hardware or firmware, such as `esp32-cam`, `esp32`,
+or `ip-camera`. `camera_type` describes the camera role in the coop, such as
+`droppings-camera`, `overview-camera`, `environmental-camera`, or
+`security-camera`.
+
+Dashboard users register and manage device metadata with JWT authentication.
+Physical devices and the simulator send telemetry, heartbeats, and poultry
+droppings image uploads with `X-Device-Id` and `X-Device-Api-Key`.
 
 Farm and coop reports return JSON for now, not PDF.
 
@@ -211,6 +221,7 @@ Protected dashboard endpoints return `401` without a valid token.
 - `POST /api/devices/register`
 - `GET /api/devices`
 - `GET /api/devices/{device_id}`
+- `PATCH /api/devices/{device_id}`
 - `PATCH /api/devices/{device_id}/deactivate`
 - `GET /api/farms`
 - `POST /api/farms`
@@ -233,16 +244,25 @@ Protected dashboard endpoints return `401` without a valid token.
 
 ## Register a Development Device
 
-IoT POST endpoints require device credentials. Register the simulator once:
+IoT POST endpoints require device credentials. Create the farm and coop first
+through the dashboard or `POST /api/farms` and
+`POST /api/farms/{farm_id}/coops`. Then an admin dashboard user registers the
+simulator or camera once with a JWT:
 
 ```bash
 curl -X POST http://localhost:8000/api/devices/register \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": "esp32-sim-01",
-    "device_type": "ESP32-CAM",
+    "name": "Coop 01 Simulator Camera",
     "farm_id": "farm-01",
     "coop_id": "coop-01",
+    "device_type": "esp32-cam",
+    "camera_type": "droppings-camera",
+    "stream_url": "http://example.local/stream",
+    "location_label": "Coop 01 - East side",
+    "description": "Development camera focused on the droppings collection area",
     "api_key": "dev-secret-key"
   }'
 ```
@@ -253,23 +273,48 @@ Expected response:
 {
   "status": "success",
   "message": "Device registered",
-  "device_id": "esp32-sim-01"
+  "device_id": "esp32-sim-01",
+  "api_key": null,
+  "device": {
+    "device_id": "esp32-sim-01",
+    "name": "Coop 01 Simulator Camera",
+    "device_type": "esp32-cam",
+    "camera_type": "droppings-camera"
+  }
 }
 ```
 
-Raw API keys are never stored in SQLite. The backend stores only a salted hash
-and verifies incoming keys with constant-time comparison.
+If `api_key` is omitted, the backend generates one and returns it once in the
+`api_key` response field. Copy that key immediately and configure the physical
+device or simulator. Raw API keys are never stored in SQLite. The backend stores
+only a salted hash and verifies incoming keys with constant-time comparison.
+
+Update camera metadata:
+
+```bash
+curl -X PATCH http://localhost:8000/api/devices/esp32-sim-01 \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Coop 01 East Droppings Camera",
+    "camera_type": "droppings-camera",
+    "location_label": "Coop 01 - East side",
+    "description": "Primary fecal image classification camera"
+  }'
+```
 
 List devices:
 
 ```bash
-curl http://localhost:8000/api/devices
+curl http://localhost:8000/api/devices \
+  -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
 Deactivate a device:
 
 ```bash
-curl -X PATCH http://localhost:8000/api/devices/esp32-sim-01/deactivate
+curl -X PATCH http://localhost:8000/api/devices/esp32-sim-01/deactivate \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 ```
 
 Authenticated IoT requests must include:

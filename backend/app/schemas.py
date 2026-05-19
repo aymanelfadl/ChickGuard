@@ -114,16 +114,35 @@ class ImageReadingOut(BaseModel):
 
 class DeviceRegisterCreate(BaseModel):
     device_id: str = Field(..., min_length=1)
+    name: Optional[str] = None
     device_type: str = Field(..., min_length=1)
+    camera_type: Optional[str] = None
     farm_id: str = Field(..., min_length=1)
     coop_id: str = Field(..., min_length=1)
-    api_key: str = Field(..., min_length=8)
+    stream_url: Optional[str] = None
+    location_label: Optional[str] = None
+    description: Optional[str] = None
+    api_key: Optional[str] = Field(default=None, min_length=8)
 
 
 class DeviceRegisterAck(BaseModel):
     status: str
     message: str
     device_id: str
+    api_key: Optional[str] = None
+    device: Optional[dict] = None
+
+
+class DeviceUpdate(BaseModel):
+    name: Optional[str] = None
+    farm_id: Optional[str] = None
+    coop_id: Optional[str] = None
+    device_type: Optional[str] = None
+    camera_type: Optional[str] = None
+    stream_url: Optional[str] = None
+    location_label: Optional[str] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 class DeviceHeartbeatCreate(BaseModel):
@@ -145,9 +164,14 @@ class DeviceOut(BaseModel):
 
     id: int
     device_id: str
+    name: Optional[str]
     device_type: str
+    camera_type: Optional[str]
     farm_id: str
     coop_id: str
+    stream_url: Optional[str]
+    location_label: Optional[str]
+    description: Optional[str]
     is_active: bool
     status: str
     last_seen_at: Optional[str]
@@ -210,7 +234,10 @@ class CameraDeviceOut(BaseModel):
     coop_id: int
     name: str
     device_type: str
+    camera_type: Optional[str]
     stream_url: Optional[str]
+    location_label: Optional[str]
+    description: Optional[str]
     is_active: bool
     status: str
     last_seen_at: Optional[str]

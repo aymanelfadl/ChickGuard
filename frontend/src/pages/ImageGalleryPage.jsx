@@ -14,6 +14,7 @@ const DEFAULT_FILTERS = {
   device_id: "",
   prediction_status: "",
   disease_type: "",
+  camera_type: "",
   date_from: "",
   date_to: "",
   search: "",
@@ -30,6 +31,7 @@ export default function ImageGalleryPage({ realtime }) {
     device_id: searchParams.get("device_id") || "",
     prediction_status: searchParams.get("prediction_status") || "",
     disease_type: searchParams.get("disease_type") || "",
+    camera_type: searchParams.get("camera_type") || "",
     date_from: searchParams.get("date_from") || "",
     date_to: searchParams.get("date_to") || "",
     search: searchParams.get("search") || "",
@@ -193,6 +195,20 @@ function FilterFields({ draftFilters, updateDraft, clearFilters }) {
         </select>
       </label>
       <FilterInput label="Disease" value={draftFilters.disease_type} onChange={(value) => updateDraft("disease_type", value)} />
+      <label className="text-sm">
+        <span className="font-semibold text-[#64748B]">Camera Type</span>
+        <select
+          value={draftFilters.camera_type}
+          onChange={(event) => updateDraft("camera_type", event.target.value)}
+          className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+        >
+          <option value="">Any</option>
+          <option value="droppings-camera">Droppings Camera</option>
+          <option value="overview-camera">Overview Camera</option>
+          <option value="environmental-camera">Environmental Camera</option>
+          <option value="security-camera">Security Camera</option>
+        </select>
+      </label>
       <FilterInput label="From" type="date" value={draftFilters.date_from} onChange={(value) => updateDraft("date_from", value)} />
       <FilterInput label="To" type="date" value={draftFilters.date_to} onChange={(value) => updateDraft("date_to", value)} />
       <FilterInput label="Search" value={draftFilters.search} onChange={(value) => updateDraft("search", value)} />

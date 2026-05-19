@@ -91,19 +91,26 @@ X-Device-Id: esp32-sim-01
 X-Device-Api-Key: dev-secret-key
 ```
 
-Register that development device in the backend before running the simulator:
+Create the matching `farm-01` farm and `coop-01` coop first. Then register that development device in the backend before running the simulator. Device registration is an admin dashboard action, so use a JWT from `/api/auth/login`:
 
 ```bash
 curl -X POST http://localhost:8000/api/devices/register \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "device_id": "esp32-sim-01",
-    "device_type": "ESP32-CAM",
+    "name": "Coop 01 Simulator Camera",
     "farm_id": "farm-01",
     "coop_id": "coop-01",
+    "device_type": "esp32-cam",
+    "camera_type": "droppings-camera",
+    "location_label": "Coop 01 - East side",
+    "description": "Development camera focused on the droppings collection area",
     "api_key": "dev-secret-key"
   }'
 ```
+
+Dashboard users manage device metadata with JWT. The simulator itself continues to authenticate ingestion, heartbeat, and image upload requests with `X-Device-Id` and `X-Device-Api-Key`.
 
 For the mock droppings analysis fallback, use filenames such as:
 

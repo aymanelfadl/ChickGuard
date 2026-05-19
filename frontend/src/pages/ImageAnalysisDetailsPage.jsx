@@ -108,6 +108,7 @@ export default function ImageAnalysisDetailsPage() {
               <Row label="Device ID" value={analysis.device_id} />
               <Row label="Device Type" value={analysis.device_type} />
               <Row label="Camera Type" value={analysis.camera_type} />
+              <Row label="Location Label" value={analysis.location_label} />
             </dl>
           </Card>
 

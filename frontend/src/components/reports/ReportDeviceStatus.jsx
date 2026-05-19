@@ -13,13 +13,16 @@ export default function ReportDeviceStatus({ devices = [] }) {
       ) : (
         <>
           <div className="hidden overflow-x-auto rounded-lg border border-[#E2E8F0] md:block">
-            <table className="min-w-[980px] divide-y divide-[#E2E8F0] text-sm">
+            <table className="min-w-[1180px] divide-y divide-[#E2E8F0] text-sm">
               <thead className="bg-[#F8FBF8] text-left text-xs uppercase text-[#64748B]">
                 <tr>
                   <HeaderCell>Device Name</HeaderCell>
                   <HeaderCell>Device ID</HeaderCell>
                   <HeaderCell>Coop</HeaderCell>
-                  <HeaderCell>Type</HeaderCell>
+                  <HeaderCell>Device Type</HeaderCell>
+                  <HeaderCell>Camera Type</HeaderCell>
+                  <HeaderCell>Stream URL</HeaderCell>
+                  <HeaderCell>Location</HeaderCell>
                   <HeaderCell>Status</HeaderCell>
                   <HeaderCell>Last Seen</HeaderCell>
                   <HeaderCell>Last Event</HeaderCell>
@@ -34,6 +37,9 @@ export default function ReportDeviceStatus({ devices = [] }) {
                     <BodyCell>{device.device_id || "N/A"}</BodyCell>
                     <BodyCell>{device.coop_name || device.coop_id || "N/A"}</BodyCell>
                     <BodyCell>{device.device_type || "N/A"}</BodyCell>
+                    <BodyCell>{device.camera_type || "N/A"}</BodyCell>
+                    <BodyCell>{device.stream_url ? "Configured" : "Not set"}</BodyCell>
+                    <BodyCell>{device.location_label || "N/A"}</BodyCell>
                     <BodyCell><StatusBadge status={device.status} /></BodyCell>
                     <BodyCell>{formatDateTime(device.last_seen_at)}</BodyCell>
                     <BodyCell>{device.last_event_type || "N/A"}</BodyCell>
@@ -75,6 +81,9 @@ export default function ReportDeviceStatus({ devices = [] }) {
                 <dl className="mt-4 grid gap-3 text-sm">
                   <MobileRow label="Device ID" value={device.device_id} />
                   <MobileRow label="Coop" value={device.coop_name || device.coop_id} />
+                  <MobileRow label="Camera Type" value={device.camera_type} />
+                  <MobileRow label="Stream URL" value={device.stream_url ? "Configured" : "Not set"} />
+                  <MobileRow label="Location" value={device.location_label} />
                   <MobileRow label="Last Seen" value={formatDateTime(device.last_seen_at)} />
                   <MobileRow label="Last Event" value={device.last_event_type} />
                   <MobileRow

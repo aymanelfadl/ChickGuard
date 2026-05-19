@@ -58,7 +58,9 @@ Supported filters:
 
 The response includes `items`, `total_count`, `limit`, and `offset`.
 
-Each item includes image URL, filename, farm/coop/device/camera context, prediction status, disease type, raw label, confidence, captured timestamp, and created timestamp.
+Each item includes image URL, filename, farm/coop/device/camera context, camera type, location label when available, prediction status, disease type, raw label, confidence, captured timestamp, and created timestamp.
+
+The `camera_type` filter uses dashboard camera metadata when available. This lets farm managers browse only droppings cameras, overview cameras, environmental cameras, or security cameras without changing the IoT upload endpoint.
 
 ## Analysis Detail API
 
@@ -73,9 +75,22 @@ The detail response includes:
 - Disease display name
 - Farm and coop context
 - Device/camera context
+- Camera type and location label when available
 - Confidence and raw label
 - Nearest related sensor snapshot
 - Related health alerts
+
+## Device Metadata Relationship
+
+Image records continue to come from `POST /api/iot/image-reading`. The gallery enriches those records with the matching camera/device metadata:
+
+- Device name
+- Device type
+- Camera type
+- Farm and coop names
+- Location label
+
+The image upload request still authenticates with `X-Device-Id` and `X-Device-Api-Key`. Dashboard users view gallery images with JWT authentication.
 
 ## Frontend Routes
 
@@ -95,4 +110,3 @@ Farm, coop, and device pages show recent droppings images and link into the filt
 The dashboard already receives SSE events. When `droppings_analysis_created` arrives, pages that show image data refresh their REST-backed data and show a small “New image analysis received” indicator.
 
 REST APIs remain the source of truth. SSE only tells the frontend that newer data is available.
-

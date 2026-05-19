@@ -19,3 +19,10 @@ export function registerDevice(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function updateDevice(deviceId, payload) {
+  return fetchJson(DEVICE_ENDPOINTS.device(deviceId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}

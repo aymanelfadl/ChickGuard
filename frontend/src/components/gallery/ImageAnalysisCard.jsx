@@ -35,6 +35,7 @@ export default function ImageAnalysisCard({ item }) {
           <Field label="Disease" value={item.disease_type || "No disease"} />
           <Field label="Confidence" value={formatPercent(item.confidence)} />
           <Field label="Camera" value={item.device_name || item.device_id} />
+          <Field label="Camera Type" value={item.camera_type} />
           <Field label="Captured" value={formatDateTime(item.captured_at)} />
         </div>
       </div>
@@ -52,4 +53,3 @@ function Field({ label, value }) {
     </div>
   );
 }
-

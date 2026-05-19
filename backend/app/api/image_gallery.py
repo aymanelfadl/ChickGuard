@@ -144,7 +144,8 @@ def gallery_item(db: Session, reading: models.ImageReading) -> dict:
         "device_id": reading.device_id,
         "device_name": camera.name if camera else reading.device_id,
         "device_type": reading.device_type or (device.device_type if device else None),
-        "camera_type": camera.device_type if camera else reading.device_type,
+        "camera_type": camera.camera_type if camera else reading.device_type,
+        "location_label": camera.location_label if camera else None,
         "prediction_status": reading.prediction_status,
         "disease_type": reading.disease_type,
         "disease_display_name": disease_display_name or reading.disease_type,
@@ -242,7 +243,16 @@ def list_image_gallery(
     if disease_type:
         query = query.filter(models.ImageReading.disease_type == disease_type)
     if camera_type:
-        query = query.filter(models.ImageReading.device_type == camera_type)
+        camera_device_ids = [
+            item[0]
+            for item in db.query(models.CameraDevice.device_id)
+            .filter(models.CameraDevice.camera_type == camera_type)
+            .all()
+        ]
+        camera_type_filter = models.ImageReading.device_type == camera_type
+        if camera_device_ids:
+            camera_type_filter = or_(camera_type_filter, models.ImageReading.device_id.in_(camera_device_ids))
+        query = query.filter(camera_type_filter)
     if date_from:
         query = query.filter(models.ImageReading.timestamp >= date_from)
     if date_to:

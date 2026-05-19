@@ -5,22 +5,33 @@ import Card from "../components/common/Card.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
+import Modal from "../components/common/Modal.jsx";
 import DeviceCard from "../components/devices/DeviceCard.jsx";
+import DeviceForm from "../components/forms/DeviceForm.jsx";
 import RecentImageGrid from "../components/gallery/RecentImageGrid.jsx";
 import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
-import { fetchDevice } from "../services/deviceService.js";
+import { fetchDevice, updateDevice } from "../services/deviceService.js";
+import { fetchFarmCoops, fetchFarms } from "../services/farmService.js";
 import { formatDateTime, formatHumidity, formatTemperature, formatWeight } from "../utils/formatters.js";
 
-export default function DeviceDetailsPage({ realtime }) {
+export default function DeviceDetailsPage({ realtime, user }) {
   const { deviceId } = useParams();
   const [device, setDevice] = useState(null);
+  const [farms, setFarms] = useState([]);
+  const [coops, setCoops] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCoops, setIsLoadingCoops] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isSubmittingDevice, setIsSubmittingDevice] = useState(false);
+  const [deviceSubmitError, setDeviceSubmitError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const recentImages = useImageGallery({ device_id: deviceId, limit: 6, offset: 0 });
+  const isAdmin = user?.role === "admin";
 
   const loadDevice = useCallback(async ({ showLoading = true } = {}) => {
     if (showLoading) {
@@ -56,6 +67,53 @@ export default function DeviceDetailsPage({ realtime }) {
     loadDevice();
   }, [loadDevice]);
 
+  const handleEditFarmChange = useCallback(async (farmId) => {
+    if (!farmId) {
+      setCoops([]);
+      return;
+    }
+    setIsLoadingCoops(true);
+    try {
+      setCoops(await fetchFarmCoops(farmId));
+    } catch (loadError) {
+      setCoops([]);
+      setDeviceSubmitError(loadError.message || "Unable to load coops for this farm.");
+    } finally {
+      setIsLoadingCoops(false);
+    }
+  }, []);
+
+  async function openEditModal() {
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    setIsEditOpen(true);
+    if (!farms.length) {
+      try {
+        const farmItems = await fetchFarms();
+        setFarms(farmItems);
+      } catch (loadError) {
+        setDeviceSubmitError(loadError.message || "Unable to load farms.");
+      }
+    }
+  }
+
+  async function handleUpdateDevice(payload) {
+    setIsSubmittingDevice(true);
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    try {
+      const updatedDevice = await updateDevice(deviceId, payload);
+      setDevice(updatedDevice);
+      setIsEditOpen(false);
+      setSuccessMessage(`${updatedDevice?.name || updatedDevice?.device_id || deviceId} updated.`);
+      await loadDevice({ showLoading: false });
+    } catch (updateError) {
+      setDeviceSubmitError(updateError.message || "Unable to update device.");
+    } finally {
+      setIsSubmittingDevice(false);
+    }
+  }
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -71,6 +129,15 @@ export default function DeviceDetailsPage({ realtime }) {
   const farmName = device?.farm_name || farmId || "Farm";
   const coopName = device?.coop_name || coopId || "Coop";
   const deviceStatus = device?.status || device?.camera?.status;
+  const metadata = {
+    ...(device?.camera || {}),
+    ...device,
+    name: device?.name || device?.camera?.name,
+    camera_type: device?.camera_type || device?.camera?.camera_type,
+    stream_url: device?.stream_url || device?.camera?.stream_url,
+    location_label: device?.location_label || device?.camera?.location_label,
+    description: device?.description || device?.camera?.description,
+  };
 
   return (
     <section className="space-y-5">
@@ -96,6 +163,15 @@ export default function DeviceDetailsPage({ realtime }) {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+              >
+                Edit Device
+              </button>
+            ) : null}
             <Link
               to={`/gallery?device_id=${encodeURIComponent(deviceId)}`}
               className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
@@ -127,19 +203,31 @@ export default function DeviceDetailsPage({ realtime }) {
         isRefreshing={isRefreshing}
         onRefresh={refreshManually}
       />
+      {successMessage ? (
+        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+          {successMessage}
+        </p>
+      ) : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <DeviceCard
           device={{
             ...(device?.camera || device),
             device_id: device?.device_id,
+            name: metadata.name,
             device_type: device?.device_type,
+            camera_type: metadata.camera_type,
             farm_id: device?.farm_id,
             coop_id: device?.coop_id,
+            stream_url: metadata.stream_url,
+            location_label: metadata.location_label,
+            description: metadata.description,
             status: device?.status,
             last_seen_at: device?.last_seen_at,
             last_event_type: device?.last_event_type,
           }}
+          canEdit={isAdmin}
+          onEdit={openEditModal}
         />
 
         <div id="device-events" className="scroll-mt-6">
@@ -159,6 +247,37 @@ export default function DeviceDetailsPage({ realtime }) {
         </div>
       </div>
 
+      <Card title="Camera / Device Metadata" description="Administrative metadata used for monitoring and future live camera integration.">
+        <dl className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+          <MetadataRow label="Device Name" value={metadata.name} />
+          <MetadataRow label="Device ID" value={device?.device_id} />
+          <MetadataRow label="Device Type" value={metadata.device_type || device?.device_type} />
+          <MetadataRow label="Camera Type" value={metadata.camera_type} />
+          <MetadataRow label="Farm" value={farmName} to={farmId ? `/farms/${farmId}` : null} />
+          <MetadataRow label="Coop" value={coopName} to={coopId ? `/coops/${coopId}` : null} />
+          <MetadataRow label="Location Label" value={metadata.location_label} />
+          <MetadataRow label="Stream URL" value={metadata.stream_url ? "Configured" : "Not set"} />
+          <MetadataRow label="Active" value={metadata.is_active ? "Yes" : "No"} />
+          <MetadataRow label="Last Seen" value={formatDateTime(metadata.last_seen_at || device?.last_seen_at)} />
+          <MetadataRow label="Last Event" value={metadata.last_event_type || device?.last_event_type} />
+          <MetadataRow label="Description" value={metadata.description} wide />
+        </dl>
+        {metadata.stream_url ? (
+          <a
+            className="mt-4 inline-flex rounded-lg border border-[#CFE8D7] px-4 py-2 text-sm font-semibold text-[#14532D]"
+            href={metadata.stream_url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open Stream URL
+          </a>
+        ) : (
+          <p className="mt-4 rounded-lg border border-dashed border-[#BBF7D0] bg-[#F8FBF8] p-4 text-sm text-[#64748B]">
+            Live stream placeholder. Add a stream URL when this camera exposes one.
+          </p>
+        )}
+      </Card>
+
       <Card title="Latest Images From This Camera" description="Most recent uploaded droppings images for this device.">
         <RecentImageGrid
           images={recentImages.items}
@@ -166,7 +285,43 @@ export default function DeviceDetailsPage({ realtime }) {
           emptyMessage="Uploaded images from this camera will appear here."
         />
       </Card>
+
+      <Modal
+        title="Edit Device / Camera"
+        description="Update camera metadata, farm/coop placement, stream URL, and active status."
+        isOpen={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+      >
+        <DeviceForm
+          key={device?.device_id || "edit-device-detail"}
+          mode="edit"
+          initialValues={device}
+          farms={farms}
+          coops={coops}
+          onFarmChange={handleEditFarmChange}
+          onSubmit={handleUpdateDevice}
+          onCancel={() => setIsEditOpen(false)}
+          isSubmitting={isSubmittingDevice}
+          isLoadingCoops={isLoadingCoops}
+          error={deviceSubmitError}
+        />
+      </Modal>
     </section>
+  );
+}
+
+function MetadataRow({ label, value, to, wide = false }) {
+  return (
+    <div className={wide ? "sm:col-span-2 xl:col-span-4" : ""}>
+      <dt className="text-xs font-semibold uppercase text-[#64748B]">{label}</dt>
+      {to && value ? (
+        <dd className="mt-1 truncate font-semibold text-[#14532D]">
+          <Link to={to} className="hover:underline">{value}</Link>
+        </dd>
+      ) : (
+        <dd className="mt-1 truncate font-semibold text-[#102A1C]" title={value || undefined}>{value || "N/A"}</dd>
+      )}
+    </div>
   );
 }
 

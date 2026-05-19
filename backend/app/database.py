@@ -46,6 +46,16 @@ def ensure_database_schema() -> None:
 
         table_columns = {column["name"] for column in inspector.get_columns(table_name)}
         with engine.begin() as connection:
+            if "name" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN name VARCHAR(255)"))
+            if "camera_type" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN camera_type VARCHAR(100)"))
+            if "stream_url" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN stream_url VARCHAR(500)"))
+            if "location_label" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN location_label VARCHAR(255)"))
+            if "description" not in table_columns:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN description VARCHAR(1000)"))
             if "last_seen_at" not in table_columns:
                 connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN last_seen_at DATETIME"))
             if "status" not in table_columns:

@@ -69,6 +69,7 @@ def update_device_presence(
         camera.last_seen_at = seen_at
         camera.status = status
         camera.last_event_type = event_type
+        camera.device_type = device.device_type
 
     return device
 
@@ -89,4 +90,3 @@ def device_status_fields(record: models.Device | models.CameraDevice) -> dict:
         "last_seen_at": format_utc(record.last_seen_at),
         "last_event_type": record.last_event_type,
     }
-
