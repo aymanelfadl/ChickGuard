@@ -5,6 +5,8 @@ import Card from "../components/common/Card.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
 import StatusBadge from "../components/dashboard/StatusBadge.jsx";
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
+import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageAnalysisDetails } from "../hooks/useImageGallery.js";
 import { authenticatedImageUrl } from "../services/imageGalleryService.js";
 import { formatDateTime, formatHumidity, formatPercent, formatTemperature, formatWeight } from "../utils/formatters.js";
@@ -22,18 +24,53 @@ export default function ImageAnalysisDetailsPage() {
   }
 
   const sensor = analysis?.sensor_snapshot;
+  const farmLabel = analysis.farm_name || analysis.farm_id || "Farm";
+  const coopLabel = analysis.coop_name || analysis.coop_id || "Coop";
+  const deviceLabel = analysis.device_name || analysis.device_id || "Camera";
+  const resultLabel = analysis.disease_type || (analysis.prediction_status === "healthy" ? "Healthy" : "Droppings Analysis");
 
   return (
     <section className="space-y-5">
+      <div className="space-y-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", to: "/dashboard" },
+            { label: "Farms", to: "/farms" },
+            { label: farmLabel, to: analysis.farm_id ? `/farms/${analysis.farm_id}` : "/farms" },
+            { label: coopLabel, to: analysis.coop_id ? `/coops/${analysis.coop_id}` : undefined },
+            { label: `Camera ${deviceLabel}`, to: analysis.device_id ? `/devices/${analysis.device_id}` : undefined },
+            { label: "Image Analysis", to: `/gallery/${imageReadingId}` },
+          ]}
+          levelLabel="Image Analysis Level"
+        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
+              Image Analysis Level
+            </span>
+            <h1 className="mt-2 truncate text-2xl font-bold text-[#102A1C]">{resultLabel}</h1>
+            <p className="text-sm text-[#64748B]">
+              {farmLabel} · {coopLabel} · Camera {deviceLabel} · Captured {formatDateTime(analysis.captured_at)}
+            </p>
+          </div>
+        </div>
+        <HierarchyContext
+          farm={{ label: farmLabel, to: analysis.farm_id ? `/farms/${analysis.farm_id}` : "/farms" }}
+          coop={{ label: coopLabel, to: analysis.coop_id ? `/coops/${analysis.coop_id}` : undefined }}
+          device={{ label: deviceLabel, to: analysis.device_id ? `/devices/${analysis.device_id}` : undefined }}
+          status={analysis.prediction_status}
+        />
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Link to="/gallery" className="inline-flex items-center gap-2 text-sm font-semibold text-[#14532D]">
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Back to gallery
         </Link>
         <div className="flex flex-wrap gap-2">
-          <LinkButton to={`/farms/${analysis.farm_id}`} icon={Building2} label="Farm" />
-          <LinkButton to={`/coops/${analysis.coop_id}`} icon={Home} label="Coop" />
-          <LinkButton to={`/devices/${analysis.device_id}`} icon={Camera} label="Camera" />
+          <LinkButton to={`/farms/${analysis.farm_id}`} icon={Building2} label="Open Farm" />
+          <LinkButton to={`/coops/${analysis.coop_id}`} icon={Home} label="Open Coop" />
+          <LinkButton to={`/devices/${analysis.device_id}`} icon={Camera} label="Open Device" />
         </div>
       </div>
 
@@ -128,4 +165,3 @@ function Row({ label, value }) {
     </div>
   );
 }
-

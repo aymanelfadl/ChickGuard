@@ -41,7 +41,7 @@ const overviewCards = [
 
 export default function OverviewCards({ overview }) {
   return (
-    <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+    <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
       {overviewCards.map(({ label, key, description, icon: Icon }) => (
         <article
           key={key}

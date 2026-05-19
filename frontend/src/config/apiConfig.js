@@ -26,6 +26,7 @@ export const COOP_ENDPOINTS = {
 
 export const DEVICE_ENDPOINTS = {
   devices: "/api/devices",
+  register: "/api/devices/register",
   device: (deviceId) => `/api/devices/${deviceId}`,
 };
 

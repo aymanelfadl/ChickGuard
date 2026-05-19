@@ -5,16 +5,27 @@ import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
+import Modal from "../components/common/Modal.jsx";
 import DeviceCard from "../components/devices/DeviceCard.jsx";
+import DeviceForm from "../components/forms/DeviceForm.jsx";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
-import { fetchDevice, fetchDevices } from "../services/deviceService.js";
+import { fetchFarmCoops, fetchFarms } from "../services/farmService.js";
+import { fetchDevice, fetchDevices, registerDevice } from "../services/deviceService.js";
 
-export default function DevicesPage({ realtime }) {
+export default function DevicesPage({ realtime, user }) {
   const [devices, setDevices] = useState([]);
   const [deviceDetails, setDeviceDetails] = useState([]);
+  const [farms, setFarms] = useState([]);
+  const [coops, setCoops] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingCoops, setIsLoadingCoops] = useState(false);
   const [error, setError] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isSubmittingDevice, setIsSubmittingDevice] = useState(false);
+  const [deviceSubmitError, setDeviceSubmitError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const isAdmin = user?.role === "admin";
 
   const loadDevices = useCallback(async ({ showLoading = true } = {}) => {
     if (showLoading) {
@@ -57,6 +68,61 @@ export default function DevicesPage({ realtime }) {
     loadDevices();
   }, [loadDevices]);
 
+  const handleRegistrationFarmChange = useCallback(async (farmId) => {
+    if (!farmId) {
+      setCoops([]);
+      return;
+    }
+    setIsLoadingCoops(true);
+    try {
+      setCoops(await fetchFarmCoops(farmId));
+    } catch (loadError) {
+      setCoops([]);
+      setDeviceSubmitError(loadError.message || "Unable to load coops for this farm.");
+    } finally {
+      setIsLoadingCoops(false);
+    }
+  }, []);
+
+  const loadFarmsForRegistration = useCallback(async () => {
+    try {
+      const farmItems = await fetchFarms();
+      setFarms(farmItems);
+      if (farmItems[0]) {
+        await handleRegistrationFarmChange(String(farmItems[0].id));
+      }
+    } catch (loadError) {
+      setDeviceSubmitError(loadError.message || "Unable to load farms for device registration.");
+    }
+  }, [handleRegistrationFarmChange]);
+
+  async function openRegisterModal() {
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    setIsRegisterOpen(true);
+    if (!farms.length) {
+      await loadFarmsForRegistration();
+    }
+  }
+
+  async function handleRegisterDevice(payload) {
+    setIsSubmittingDevice(true);
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    try {
+      const response = await registerDevice(payload);
+      setIsRegisterOpen(false);
+      setSuccessMessage(
+        `${response?.device_id || payload.device_id} registered. Configure the same API key on the physical device or simulator.`,
+      );
+      await loadDevices({ showLoading: false });
+    } catch (registerError) {
+      setDeviceSubmitError(registerError.message || "Unable to register device.");
+    } finally {
+      setIsSubmittingDevice(false);
+    }
+  }
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -75,13 +141,42 @@ export default function DevicesPage({ realtime }) {
         isRefreshing={isRefreshing}
         onRefresh={refreshManually}
       />
-      <div>
-        <h2 className="text-xl font-bold text-[#102A1C]">Devices / Cameras</h2>
-        <p className="text-sm text-[#64748B]">Registered ESP32/ESP32-CAM devices, camera placeholders, and latest droppings analysis.</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-[#102A1C]">Devices / Cameras</h2>
+          <p className="text-sm text-[#64748B]">Registered ESP32/ESP32-CAM devices, camera placeholders, and latest droppings analysis.</p>
+        </div>
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={openRegisterModal}
+            className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+          >
+            Register Device / Camera
+          </button>
+        ) : null}
       </div>
+      {successMessage ? (
+        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+          {successMessage}
+        </p>
+      ) : null}
       {!devices.length ? (
         <Card title="No Devices">
-          <EmptyState title="No devices registered" message="Register a simulator or ESP32 device to see it here." />
+          <div className="space-y-4">
+            <EmptyState title="No devices registered" message="Register a simulator or ESP32 device to see it here." />
+            {isAdmin ? (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={openRegisterModal}
+                  className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+                >
+                  Register Device / Camera
+                </button>
+              </div>
+            ) : null}
+          </div>
         </Card>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -102,6 +197,24 @@ export default function DevicesPage({ realtime }) {
           ))}
         </div>
       )}
+
+      <Modal
+        title="Register Device / Camera"
+        description="Register a device for API-key authenticated IoT ingestion."
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+      >
+        <DeviceForm
+          farms={farms}
+          coops={coops}
+          onFarmChange={handleRegistrationFarmChange}
+          onSubmit={handleRegisterDevice}
+          onCancel={() => setIsRegisterOpen(false)}
+          isSubmitting={isSubmittingDevice}
+          isLoadingCoops={isLoadingCoops}
+          error={deviceSubmitError}
+        />
+      </Modal>
     </section>
   );
 }

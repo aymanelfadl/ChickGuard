@@ -7,6 +7,8 @@ import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
 import DeviceCard from "../components/devices/DeviceCard.jsx";
 import RecentImageGrid from "../components/gallery/RecentImageGrid.jsx";
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
+import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchDevice } from "../services/deviceService.js";
@@ -63,9 +65,59 @@ export default function DeviceDetailsPage({ realtime }) {
   }
 
   const latestSensor = device?.latest_sensor;
+  const deviceLabel = device?.name || device?.device_id || deviceId;
+  const farmId = device?.farm_id || device?.camera?.farm_id;
+  const coopId = device?.coop_id || device?.camera?.coop_id;
+  const farmName = device?.farm_name || farmId || "Farm";
+  const coopName = device?.coop_name || coopId || "Coop";
+  const deviceStatus = device?.status || device?.camera?.status;
 
   return (
     <section className="space-y-5">
+      <div className="space-y-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", to: "/dashboard" },
+            { label: "Farms", to: "/farms" },
+            { label: farmName, to: farmId ? `/farms/${farmId}` : "/farms" },
+            { label: coopName, to: coopId ? `/coops/${coopId}` : undefined },
+            { label: `Camera ${deviceLabel}`, to: `/devices/${deviceId}` },
+          ]}
+          levelLabel="Device Level"
+        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
+              Device Level
+            </span>
+            <h1 className="mt-2 truncate text-2xl font-bold text-[#102A1C]">{deviceLabel}</h1>
+            <p className="text-sm text-[#64748B]">
+              Part of {farmName} · {coopName} · {device?.device_type || device?.camera?.device_type || "Camera / Device"}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/gallery?device_id=${encodeURIComponent(deviceId)}`}
+              className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+            >
+              View Latest Images
+            </Link>
+            <a href="#device-events" className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]">
+              View Device Events
+            </a>
+            <Link to={`/alerts?device_id=${encodeURIComponent(deviceId)}`} className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]">
+              Open Related Alerts
+            </Link>
+          </div>
+        </div>
+        <HierarchyContext
+          farm={{ label: farmName, to: farmId ? `/farms/${farmId}` : "/farms" }}
+          coop={{ label: coopName, to: coopId ? `/coops/${coopId}` : undefined }}
+          device={{ label: deviceLabel, to: `/devices/${deviceId}` }}
+          status={deviceStatus}
+        />
+      </div>
+
       <LiveUpdateStatus
         realtimeStatus={realtime?.status}
         lastUpdatedAt={lastUpdatedAt}
@@ -75,19 +127,6 @@ export default function DeviceDetailsPage({ realtime }) {
         isRefreshing={isRefreshing}
         onRefresh={refreshManually}
       />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-[#102A1C]">{device?.device_id || "Device"}</h2>
-          <p className="text-sm text-[#64748B]">Camera status, latest sensor context, and recent poultry droppings images.</p>
-        </div>
-        <Link
-          to={`/gallery?device_id=${encodeURIComponent(deviceId)}`}
-          className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
-        >
-          View camera gallery
-        </Link>
-      </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
         <DeviceCard
@@ -103,18 +142,21 @@ export default function DeviceDetailsPage({ realtime }) {
           }}
         />
 
-        <Card title="Latest Sensor Reading" description="Nearest recent telemetry from this device.">
-          {latestSensor ? (
-            <dl className="space-y-3 text-sm">
-              <Row label="Temperature" value={formatTemperature(latestSensor.temperature_c)} />
-              <Row label="Humidity" value={formatHumidity(latestSensor.humidity_percent)} />
-              <Row label="Weight" value={formatWeight(latestSensor.weight_kg)} />
-              <Row label="Captured" value={formatDateTime(latestSensor.timestamp)} />
-            </dl>
-          ) : (
-            <p className="text-sm text-[#64748B]">No sensor reading recorded yet.</p>
-          )}
-        </Card>
+        <div id="device-events" className="scroll-mt-6">
+          <Card title="Latest Sensor Reading" description="Nearest recent telemetry from this device.">
+            {latestSensor ? (
+              <dl className="space-y-3 text-sm">
+                <Row label="Temperature" value={formatTemperature(latestSensor.temperature_c)} />
+                <Row label="Humidity" value={formatHumidity(latestSensor.humidity_percent)} />
+                <Row label="Weight" value={formatWeight(latestSensor.weight_kg)} />
+                <Row label="Captured" value={formatDateTime(latestSensor.timestamp)} />
+                <Row label="Last Event" value={device?.last_event_type || device?.camera?.last_event_type} />
+              </dl>
+            ) : (
+              <p className="text-sm text-[#64748B]">No sensor reading recorded yet.</p>
+            )}
+          </Card>
+        </div>
       </div>
 
       <Card title="Latest Images From This Camera" description="Most recent uploaded droppings images for this device.">
@@ -138,4 +180,3 @@ function Row({ label, value }) {
     </div>
   );
 }
-

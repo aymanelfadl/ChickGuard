@@ -5,9 +5,13 @@ export function fetchFarms() {
   return fetchJson(FARM_ENDPOINTS.farms);
 }
 
+export const getFarms = fetchFarms;
+
 export function fetchFarm(farmId) {
   return fetchJson(FARM_ENDPOINTS.farm(farmId));
 }
+
+export const getFarm = fetchFarm;
 
 export function fetchFarmCoops(farmId) {
   return fetchJson(FARM_ENDPOINTS.farmCoops(farmId));

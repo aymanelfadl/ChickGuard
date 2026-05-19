@@ -35,18 +35,19 @@ function AppRoutes({ user, onLogout }) {
       }
     >
       <Routes>
-        <Route path="/" element={<DashboardPage realtime={realtime} />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<DashboardPage realtime={realtime} />} />
         <Route path="/farms" element={<FarmsPage user={user} />} />
-        <Route path="/farms/:farmId" element={<FarmDetailsPage realtime={realtime} />} />
+        <Route path="/farms/:farmId" element={<FarmDetailsPage realtime={realtime} user={user} />} />
         <Route path="/coops/:coopId" element={<CoopDetailsPage realtime={realtime} />} />
-        <Route path="/devices" element={<DevicesPage realtime={realtime} />} />
+        <Route path="/devices" element={<DevicesPage realtime={realtime} user={user} />} />
         <Route path="/devices/:deviceId" element={<DeviceDetailsPage realtime={realtime} />} />
         <Route path="/gallery" element={<ImageGalleryPage realtime={realtime} />} />
         <Route path="/gallery/:imageReadingId" element={<ImageAnalysisDetailsPage />} />
         <Route path="/alerts" element={<AlertsPage realtime={realtime} />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/reports" element={<ReportsPage realtime={realtime} />} />
+        <Route path="/settings" element={<SettingsPage user={user} />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </DashboardLayout>
   );

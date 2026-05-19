@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
@@ -9,6 +9,8 @@ import LoadingState from "../components/common/LoadingState.jsx";
 import DeviceCard from "../components/devices/DeviceCard.jsx";
 import RecentImageGrid from "../components/gallery/RecentImageGrid.jsx";
 import StatusBadge from "../components/dashboard/StatusBadge.jsx";
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
+import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchCoop, fetchCoopDevices } from "../services/coopService.js";
@@ -17,12 +19,15 @@ import { formatDateTime, formatHumidity, formatTemperature, formatWeight } from 
 
 export default function CoopDetailsPage({ realtime }) {
   const { coopId } = useParams();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [coop, setCoop] = useState(null);
   const [devices, setDevices] = useState([]);
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const galleryCoopId = coop?.name || coopId;
   const recentImages = useImageGallery({ coop_id: galleryCoopId, limit: 6, offset: 0 });
 
@@ -64,6 +69,12 @@ export default function CoopDetailsPage({ realtime }) {
     loadCoop();
   }, [loadCoop]);
 
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -74,9 +85,56 @@ export default function CoopDetailsPage({ realtime }) {
 
   const latestAnalysis = report?.latest_droppings_analysis;
   const latestSensor = report?.latest_sensor_readings?.[0];
+  const coopName = coop?.name || coopId;
+  const farmId = coop?.farm_id || report?.coop?.farm_id || report?.farm_id;
+  const farmName = coop?.farm_name || report?.farm?.name || farmId || "Farm";
+  const firstDevice = devices[0];
+  const firstDeviceId = firstDevice?.device_id || firstDevice?.deviceId || firstDevice?.id;
+  const activeAlerts = coop?.active_alerts ?? report?.recent_alerts?.length ?? 0;
 
   return (
     <div className="space-y-6">
+      <div className="space-y-4">
+        <Breadcrumbs
+          items={[
+            { label: "Dashboard", to: "/dashboard" },
+            { label: "Farms", to: "/farms" },
+            { label: farmName, to: farmId ? `/farms/${farmId}` : "/farms" },
+            { label: coopName, to: `/coops/${coop?.id || coopId}` },
+          ]}
+          levelLabel="Coop Level"
+        />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
+              Coop Level
+            </span>
+            <h1 className="mt-2 truncate text-2xl font-bold text-[#102A1C]">{coopName}</h1>
+            <p className="text-sm text-[#64748B]">
+              Part of {farmName} · {devices.length} cameras · {activeAlerts} active alerts
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {firstDeviceId ? (
+              <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/devices/${firstDeviceId}`}>
+                Open Camera
+              </Link>
+            ) : null}
+            <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
+              View Coop Gallery
+            </Link>
+            <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to={`/reports?type=coop&farm_id=${encodeURIComponent(farmId || "")}&coop_id=${encodeURIComponent(coop?.id || coopId)}`}>
+              View Coop Report
+            </Link>
+          </div>
+        </div>
+        <HierarchyContext
+          farm={{ label: farmName, to: farmId ? `/farms/${farmId}` : "/farms" }}
+          coop={{ label: coopName, to: `/coops/${coop?.id || coopId}` }}
+          status={coop?.latest_health_status}
+        />
+      </div>
+
       <LiveUpdateStatus
         realtimeStatus={realtime?.status}
         lastUpdatedAt={lastUpdatedAt}
@@ -85,16 +143,21 @@ export default function CoopDetailsPage({ realtime }) {
         isRefreshing={isRefreshing}
         onRefresh={refreshManually}
       />
+      {successMessage ? (
+        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+          {successMessage}
+        </p>
+      ) : null}
       <Card
         title={coop?.name || "Coop"}
         description={coop?.description || "Coop overview, cameras, sensor history, and health alerts."}
         action={
           <div className="flex flex-wrap justify-end gap-2">
             <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
-              View coop gallery
+              View Coop Gallery
             </Link>
-            <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to="/reports">
-              Report
+            <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to={`/reports?type=coop&farm_id=${encodeURIComponent(farmId || "")}&coop_id=${encodeURIComponent(coop?.id || coopId)}`}>
+              View Coop Report
             </Link>
           </div>
         }

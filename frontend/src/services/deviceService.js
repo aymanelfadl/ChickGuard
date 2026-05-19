@@ -5,6 +5,17 @@ export function fetchDevices() {
   return fetchJson(DEVICE_ENDPOINTS.devices);
 }
 
+export const getDevices = fetchDevices;
+
 export function fetchDevice(deviceId) {
   return fetchJson(DEVICE_ENDPOINTS.device(deviceId));
+}
+
+export const getDevice = fetchDevice;
+
+export function registerDevice(payload) {
+  return fetchJson(DEVICE_ENDPOINTS.register, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

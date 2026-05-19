@@ -2,11 +2,11 @@ import { AlertTriangle, BarChart3, Building2, Camera, Images, LayoutDashboard, S
 import { NavLink } from "react-router-dom";
 
 const navItems = [
-  { label: "Dashboard", to: "/", icon: LayoutDashboard, roles: ["admin", "manager", "viewer"] },
+  { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard, roles: ["admin", "manager", "viewer"] },
   { label: "Farms", to: "/farms", icon: Building2, roles: ["admin", "manager"] },
   { label: "Devices / Cameras", to: "/devices", icon: Camera, roles: ["admin", "manager"] },
-  { label: "Image Gallery", to: "/gallery", icon: Images, roles: ["admin", "manager", "viewer"] },
-  { label: "Alerts", to: "/alerts", icon: AlertTriangle, roles: ["admin", "manager", "viewer"] },
+  { label: "Image Gallery", to: "/gallery", icon: Images, roles: ["admin", "manager"] },
+  { label: "Alerts", to: "/alerts", icon: AlertTriangle, roles: ["admin", "manager"] },
   { label: "Reports", to: "/reports", icon: BarChart3, roles: ["admin", "manager", "viewer"] },
   { label: "Settings", to: "/settings", icon: Settings, roles: ["admin"] },
 ];
@@ -21,7 +21,7 @@ function Sidebar({ user }) {
           <NavLink
             key={to}
             to={to}
-            end={to === "/"}
+            end={to === "/dashboard"}
             className={({ isActive }) =>
               [
                 "inline-flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition",
@@ -43,11 +43,11 @@ function Sidebar({ user }) {
 export default function DashboardLayout({ header, children, user }) {
   return (
     <main className="min-h-screen overflow-x-hidden">
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-6 px-4 py-5 sm:px-6 sm:py-7 lg:px-8 xl:px-10">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-4 py-5 sm:px-5 sm:py-7 lg:px-6 xl:px-8">
         {header}
-        <div className="grid gap-5 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="grid w-full gap-5 lg:grid-cols-[248px_minmax(0,1fr)] xl:gap-6">
           <Sidebar user={user} />
-          <div className="min-w-0 space-y-6">{children}</div>
+          <div className="min-w-0 w-full space-y-6">{children}</div>
         </div>
       </div>
     </main>
