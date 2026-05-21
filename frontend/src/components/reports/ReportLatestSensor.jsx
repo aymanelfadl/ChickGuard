@@ -8,7 +8,7 @@ export default function ReportLatestSensor({ sensor }) {
       {!sensor ? (
         <EmptyState title="No sensor reading" message="Sensor readings for this coop will appear here." />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <SensorValue label="Temperature" value={formatTemperature(sensor.temperature_c)} interpretation={temperatureLabel(sensor.temperature_c)} />
           <SensorValue label="Humidity" value={formatHumidity(sensor.humidity_percent)} interpretation={humidityLabel(sensor.humidity_percent)} />
           <SensorValue label="Weight" value={formatWeight(sensor.weight_kg)} interpretation={sensor.weight_kg == null ? "Unknown" : "Normal"} />
@@ -21,10 +21,10 @@ export default function ReportLatestSensor({ sensor }) {
 
 function SensorValue({ label, value, interpretation }) {
   return (
-    <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FBF8] p-4">
-      <p className="text-xs font-bold uppercase text-[#64748B]">{label}</p>
-      <p className="mt-2 text-xl font-bold text-[#102A1C]">{value}</p>
-      <p className="mt-2 text-sm font-semibold text-[#14532D]">{interpretation}</p>
+    <div className="rounded-xl border border-gray-100 bg-[#F9FAF9] p-5 shadow-apple-sm">
+      <p className="text-xs font-semibold text-[#6B7280]">{label}</p>
+      <p className="mt-2 text-xl font-bold text-[#1C2B21]">{value}</p>
+      <p className="mt-2 text-sm font-medium text-[#15803D]">{interpretation}</p>
     </div>
   );
 }

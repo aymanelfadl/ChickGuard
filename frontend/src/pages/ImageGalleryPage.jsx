@@ -7,6 +7,7 @@ import LoadingState from "../components/common/LoadingState.jsx";
 import ImageAnalysisCard from "../components/gallery/ImageAnalysisCard.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 
 const DEFAULT_FILTERS = {
   farm_id: "",
@@ -81,28 +82,30 @@ export default function ImageGalleryPage({ realtime }) {
   const canGoNext = gallery.offset + gallery.limit < gallery.totalCount;
 
   return (
-    <section className="space-y-5">
-      <LiveUpdateStatus
-        realtimeStatus={realtime?.status}
-        lastUpdatedAt={gallery.lastUpdatedAt}
-        liveUpdateReceived={liveUpdateReceived}
-        liveUpdateLabel="New image analysis received"
-        lastEventType={lastRefreshEventType}
-        isRefreshing={isRefreshing}
-        onRefresh={refreshManually}
-      />
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-[#102A1C]">Image Gallery</h2>
-          <p className="text-sm text-[#64748B]">Browse poultry droppings image evidence across farms, coops, and cameras.</p>
+    <section className="space-y-8 pb-12">
+      <div className="space-y-4">
+        <Breadcrumbs items={[{ label: "Image Gallery", to: "/gallery" }]} levelLabel="System Image Gallery" />
+        <LiveUpdateStatus
+          realtimeStatus={realtime?.status}
+          lastUpdatedAt={gallery.lastUpdatedAt}
+          liveUpdateReceived={liveUpdateReceived}
+          liveUpdateLabel="New image analysis received"
+          lastEventType={lastRefreshEventType}
+          isRefreshing={isRefreshing}
+          onRefresh={refreshManually}
+        />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Image Gallery</h1>
+            <p className="mt-1 text-sm text-[#6B7280]">Browse poultry droppings image evidence across farms, coops, and cameras.</p>
+          </div>
+          <p className="text-sm font-medium text-[#6B7280]">{gallery.totalCount} images found</p>
         </div>
-        <p className="text-sm font-semibold text-[#64748B]">{gallery.totalCount} images</p>
       </div>
 
-      <details className="rounded-lg border border-[#E2E8F0] bg-white p-4 shadow-sm md:hidden">
-        <summary className="cursor-pointer text-sm font-bold text-[#14532D]">Filters</summary>
-        <form onSubmit={applyFilters} className="mt-4 grid gap-3">
+      <details className="rounded-xl border border-gray-100 bg-white p-4 shadow-apple-sm md:hidden">
+        <summary className="cursor-pointer text-sm font-semibold text-[#1C2B21]">Filters</summary>
+        <form onSubmit={applyFilters} className="mt-4 grid gap-4">
           <FilterFields
             draftFilters={draftFilters}
             updateDraft={updateDraft}
@@ -116,7 +119,7 @@ export default function ImageGalleryPage({ realtime }) {
 
       <form
         onSubmit={applyFilters}
-        className="hidden gap-3 rounded-lg border border-[#E2E8F0] bg-white p-4 shadow-sm md:grid md:grid-cols-4 xl:grid-cols-8"
+        className="hidden gap-4 rounded-xl border border-gray-100 bg-white p-6 shadow-apple-sm md:grid md:grid-cols-4 xl:grid-cols-8"
       >
         <FilterFields
           draftFilters={draftFilters}
@@ -128,14 +131,14 @@ export default function ImageGalleryPage({ realtime }) {
         />
       </form>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
         {gallery.items.map((item) => (
           <ImageAnalysisCard key={item.id} item={item} />
         ))}
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-white px-4 py-3 text-sm">
-        <span className="font-semibold text-[#64748B]">
+      <div className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 text-sm shadow-apple-sm">
+        <span className="font-medium text-[#6B7280]">
           Showing {gallery.totalCount ? gallery.offset + 1 : 0}-
           {Math.min(gallery.offset + gallery.limit, gallery.totalCount)} of {gallery.totalCount}
         </span>
@@ -144,7 +147,7 @@ export default function ImageGalleryPage({ realtime }) {
             type="button"
             disabled={!canGoPrevious}
             onClick={() => goToOffset(Math.max(0, gallery.offset - gallery.limit))}
-            className="rounded-lg border border-[#CFE8D7] px-3 py-2 font-semibold text-[#14532D] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+            className="rounded-xl border border-gray-200 px-3 py-2 font-semibold text-[#1C2B21] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
           >
             Previous
           </button>
@@ -152,7 +155,7 @@ export default function ImageGalleryPage({ realtime }) {
             type="button"
             disabled={!canGoNext}
             onClick={() => goToOffset(gallery.offset + gallery.limit)}
-            className="rounded-lg border border-[#CFE8D7] px-3 py-2 font-semibold text-[#14532D] disabled:cursor-not-allowed disabled:text-[#94A3B8]"
+            className="rounded-xl border border-gray-200 px-3 py-2 font-semibold text-[#1C2B21] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
           >
             Next
           </button>
@@ -165,12 +168,12 @@ export default function ImageGalleryPage({ realtime }) {
 function FilterInput({ label, value, onChange, type = "text" }) {
   return (
     <label className="text-sm">
-      <span className="font-semibold text-[#64748B]">{label}</span>
+      <span className="font-medium text-[#6B7280]">{label}</span>
       <input
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+        className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
       />
     </label>
   );
@@ -183,11 +186,11 @@ function FilterFields({ draftFilters, updateDraft, clearFilters }) {
       <FilterInput label="Coop" value={draftFilters.coop_id} onChange={(value) => updateDraft("coop_id", value)} />
       <FilterInput label="Camera" value={draftFilters.device_id} onChange={(value) => updateDraft("device_id", value)} />
       <label className="text-sm">
-        <span className="font-semibold text-[#64748B]">Status</span>
+        <span className="font-medium text-[#6B7280]">Status</span>
         <select
           value={draftFilters.prediction_status}
           onChange={(event) => updateDraft("prediction_status", event.target.value)}
-          className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+          className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
         >
           <option value="">Any</option>
           <option value="healthy">Healthy</option>
@@ -196,11 +199,11 @@ function FilterFields({ draftFilters, updateDraft, clearFilters }) {
       </label>
       <FilterInput label="Disease" value={draftFilters.disease_type} onChange={(value) => updateDraft("disease_type", value)} />
       <label className="text-sm">
-        <span className="font-semibold text-[#64748B]">Camera Type</span>
+        <span className="font-medium text-[#6B7280]">Camera Type</span>
         <select
           value={draftFilters.camera_type}
           onChange={(event) => updateDraft("camera_type", event.target.value)}
-          className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+          className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
         >
           <option value="">Any</option>
           <option value="droppings-camera">Droppings Camera</option>
@@ -212,14 +215,14 @@ function FilterFields({ draftFilters, updateDraft, clearFilters }) {
       <FilterInput label="From" type="date" value={draftFilters.date_from} onChange={(value) => updateDraft("date_from", value)} />
       <FilterInput label="To" type="date" value={draftFilters.date_to} onChange={(value) => updateDraft("date_to", value)} />
       <FilterInput label="Search" value={draftFilters.search} onChange={(value) => updateDraft("search", value)} />
-      <div className="flex gap-2 md:col-span-4 xl:col-span-8">
-        <button type="submit" className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white">
+      <div className="flex gap-2 md:col-span-4 xl:col-span-8 items-end">
+        <button type="submit" className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800">
           Apply Filters
         </button>
         <button
           type="button"
           onClick={clearFilters}
-          className="rounded-lg border border-[#CFE8D7] px-4 py-2 text-sm font-semibold text-[#14532D]"
+          className="rounded-xl border border-gray-200 px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm transition-colors hover:bg-gray-50"
         >
           Clear
         </button>

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import Card from "../components/common/Card.jsx";
 
 export default function SettingsPage({ user }) {
@@ -7,18 +8,23 @@ export default function SettingsPage({ user }) {
 
   if (!isAdmin) {
     return (
-      <Card title="Settings" description="Platform management permissions.">
-        <p className="text-sm leading-6 text-[#64748B]">
-          You do not have permission to manage platform settings.
-        </p>
-      </Card>
+      <div className="space-y-4">
+        <Breadcrumbs items={[{ label: "Settings", to: "/settings" }]} levelLabel="System Settings" />
+        <Card title="Settings" description="Platform management permissions.">
+          <p className="text-sm leading-6 text-[#6B7280]">
+            You do not have permission to manage platform settings.
+          </p>
+        </Card>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card title="Settings" description="Admin tools for farm hierarchy and device registry management.">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="space-y-4">
+        <Breadcrumbs items={[{ label: "Settings", to: "/settings" }]} levelLabel="System Settings" />
+        <Card title="Settings" description="Admin tools for farm hierarchy and device registry management.">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <AdminShortcut
             title="Add Farm"
             description="Create a farm, then add coops and cameras/devices."
@@ -41,6 +47,7 @@ export default function SettingsPage({ user }) {
           />
         </div>
       </Card>
+      </div>
     </div>
   );
 }
@@ -49,10 +56,10 @@ function AdminShortcut({ title, description, to }) {
   return (
     <Link
       to={to}
-      className="rounded-lg border border-[#E2E8F0] bg-[#F8FBF8] p-4 transition hover:border-[#86EFAC] hover:bg-white"
+      className="rounded-xl border border-gray-100 bg-[#F9FAF9] p-5 shadow-apple-sm transition hover:shadow-apple-md hover:bg-white"
     >
-      <p className="font-bold text-[#102A1C]">{title}</p>
-      <p className="mt-2 text-sm leading-6 text-[#64748B]">{description}</p>
+      <p className="font-semibold text-[#1C2B21]">{title}</p>
+      <p className="mt-2 text-sm leading-6 text-[#6B7280]">{description}</p>
     </Link>
   );
 }

@@ -1,7 +1,7 @@
-docker-up:
+up:
 	docker compose up -d --build
 
-docker-down:
+down:
 	docker compose down
 
 validate-model:

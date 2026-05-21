@@ -3,15 +3,10 @@
 @tailwind utilities;
 
 :root {
-  --color-page: #f6faf7;
-  --color-green-900: #14532d;
-  --color-green-700: #15803d;
-  --color-green-600: #16a34a;
-  --color-green-500: #22c55e;
-  --color-green-100: #dcfce7;
-  --color-text: #102a1c;
-  --color-muted: #64748b;
-  --color-border: #e2e8f0;
+  --color-page: #f9faf9;
+  --color-text: #1c2b21;
+  --color-muted: #6b7280;
+  --color-border: #e5e7eb;
 }
 
 * {
@@ -21,15 +16,10 @@
 body {
   margin: 0;
   min-width: 320px;
-  background:
-    linear-gradient(180deg, rgba(220, 252, 231, 0.58) 0%, rgba(246, 250, 247, 0.92) 34%, #f6faf7 100%),
-    linear-gradient(90deg, rgba(20, 83, 45, 0.035) 1px, transparent 1px),
-    linear-gradient(180deg, rgba(20, 83, 45, 0.035) 1px, transparent 1px);
-  background-size: auto, 44px 44px, 44px 44px;
+  background-color: var(--color-page);
   color: var(--color-text);
-  font-family:
-    "Aptos", "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 

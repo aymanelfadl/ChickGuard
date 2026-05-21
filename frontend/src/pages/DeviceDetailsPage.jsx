@@ -140,7 +140,7 @@ export default function DeviceDetailsPage({ realtime, user }) {
   };
 
   return (
-    <section className="space-y-5">
+    <section className="space-y-8 pb-12">
       <div className="space-y-4">
         <Breadcrumbs
           items={[
@@ -152,13 +152,10 @@ export default function DeviceDetailsPage({ realtime, user }) {
           ]}
           levelLabel="Device Level"
         />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
-              Device Level
-            </span>
-            <h1 className="mt-2 truncate text-2xl font-bold text-[#102A1C]">{deviceLabel}</h1>
-            <p className="text-sm text-[#64748B]">
+            <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21] truncate">{deviceLabel}</h1>
+            <p className="mt-1 text-sm text-[#6B7280]">
               Part of {farmName} · {coopName} · {device?.device_type || device?.camera?.device_type || "Camera / Device"}
             </p>
           </div>
@@ -167,21 +164,21 @@ export default function DeviceDetailsPage({ realtime, user }) {
               <button
                 type="button"
                 onClick={openEditModal}
-                className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+                className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm hover:bg-green-800 transition-colors"
               >
                 Edit Device
               </button>
             ) : null}
             <Link
               to={`/gallery?device_id=${encodeURIComponent(deviceId)}`}
-              className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm hover:bg-green-800 transition-colors"
             >
               View Latest Images
             </Link>
-            <a href="#device-events" className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]">
+            <a href="#device-events" className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors">
               View Device Events
             </a>
-            <Link to={`/alerts?device_id=${encodeURIComponent(deviceId)}`} className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]">
+            <Link to={`/alerts?device_id=${encodeURIComponent(deviceId)}`} className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors">
               Open Related Alerts
             </Link>
           </div>
@@ -204,12 +201,12 @@ export default function DeviceDetailsPage({ realtime, user }) {
         onRefresh={refreshManually}
       />
       {successMessage ? (
-        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+        <p className="rounded-xl border border-green-200 bg-[#F0FDF4] p-4 text-sm font-semibold text-[#15803D]">
           {successMessage}
         </p>
       ) : null}
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <DeviceCard
           device={{
             ...(device?.camera || device),
@@ -241,14 +238,14 @@ export default function DeviceDetailsPage({ realtime, user }) {
                 <Row label="Last Event" value={device?.last_event_type || device?.camera?.last_event_type} />
               </dl>
             ) : (
-              <p className="text-sm text-[#64748B]">No sensor reading recorded yet.</p>
+              <p className="text-sm text-[#6B7280]">No sensor reading recorded yet.</p>
             )}
           </Card>
         </div>
       </div>
 
       <Card title="Camera / Device Metadata" description="Administrative metadata used for monitoring and future live camera integration.">
-        <dl className="grid gap-4 text-sm sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <MetadataRow label="Device Name" value={metadata.name} />
           <MetadataRow label="Device ID" value={device?.device_id} />
           <MetadataRow label="Device Type" value={metadata.device_type || device?.device_type} />
@@ -261,10 +258,10 @@ export default function DeviceDetailsPage({ realtime, user }) {
           <MetadataRow label="Last Seen" value={formatDateTime(metadata.last_seen_at || device?.last_seen_at)} />
           <MetadataRow label="Last Event" value={metadata.last_event_type || device?.last_event_type} />
           <MetadataRow label="Description" value={metadata.description} wide />
-        </dl>
+        </div>
         {metadata.stream_url ? (
           <a
-            className="mt-4 inline-flex rounded-lg border border-[#CFE8D7] px-4 py-2 text-sm font-semibold text-[#14532D]"
+            className="mt-4 inline-flex justify-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-[#1C2B21] transition-colors hover:bg-gray-50 shadow-apple-sm"
             href={metadata.stream_url}
             target="_blank"
             rel="noreferrer"
@@ -272,7 +269,7 @@ export default function DeviceDetailsPage({ realtime, user }) {
             Open Stream URL
           </a>
         ) : (
-          <p className="mt-4 rounded-lg border border-dashed border-[#BBF7D0] bg-[#F8FBF8] p-4 text-sm text-[#64748B]">
+          <p className="mt-4 rounded-xl border border-dashed border-gray-200 bg-[#F9FAF9] p-4 text-sm text-[#6B7280]">
             Live stream placeholder. Add a stream URL when this camera exposes one.
           </p>
         )}
@@ -312,14 +309,14 @@ export default function DeviceDetailsPage({ realtime, user }) {
 
 function MetadataRow({ label, value, to, wide = false }) {
   return (
-    <div className={wide ? "sm:col-span-2 xl:col-span-4" : ""}>
-      <dt className="text-xs font-semibold uppercase text-[#64748B]">{label}</dt>
+    <div className={`rounded-xl border border-gray-100 bg-[#F9FAF9] p-3 ${wide ? "sm:col-span-2 xl:col-span-4" : ""}`}>
+      <p className="text-xs font-semibold text-[#6B7280]">{label}</p>
       {to && value ? (
-        <dd className="mt-1 truncate font-semibold text-[#14532D]">
+        <p className="mt-1 truncate font-medium text-[#15803D]">
           <Link to={to} className="hover:underline">{value}</Link>
-        </dd>
+        </p>
       ) : (
-        <dd className="mt-1 truncate font-semibold text-[#102A1C]" title={value || undefined}>{value || "N/A"}</dd>
+        <p className="mt-1 truncate font-medium text-[#1C2B21]" title={value || undefined}>{value || "N/A"}</p>
       )}
     </div>
   );
@@ -327,9 +324,9 @@ function MetadataRow({ label, value, to, wide = false }) {
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-[#EEF2F7] pb-2 last:border-0">
-      <dt className="text-[#64748B]">{label}</dt>
-      <dd className="max-w-[65%] truncate text-right font-semibold text-[#102A1C]" title={value || undefined}>
+    <div className="flex justify-between gap-4 border-b border-gray-100 pb-2 last:border-0">
+      <dt className="text-[#6B7280]">{label}</dt>
+      <dd className="max-w-[65%] truncate text-right font-medium text-[#1C2B21]" title={value || undefined}>
         {value || "N/A"}
       </dd>
     </div>

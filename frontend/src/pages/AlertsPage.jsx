@@ -7,6 +7,7 @@ import AlertsTable from "../components/dashboard/AlertsTable.jsx";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { normalizeAlerts } from "../models/dashboardModels.js";
 import { fetchAlerts } from "../services/dashboardService.js";
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 
 export default function AlertsPage({ realtime }) {
   const [alerts, setAlerts] = useState([]);
@@ -55,6 +56,7 @@ export default function AlertsPage({ realtime }) {
 
   return (
     <section className="space-y-4">
+      <Breadcrumbs items={[{ label: "Alerts", to: "/alerts" }]} levelLabel="System Alerts" />
       <LiveUpdateStatus
         realtimeStatus={realtime?.status}
         lastUpdatedAt={lastUpdatedAt}
@@ -64,8 +66,8 @@ export default function AlertsPage({ realtime }) {
         onRefresh={refreshManually}
       />
       <div>
-        <h2 className="text-xl font-bold text-[#102A1C]">Health Alerts</h2>
-        <p className="text-sm text-[#64748B]">Farm and coop health alerts generated from poultry droppings analysis.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Health Alerts</h2>
+        <p className="mt-1 text-sm text-[#6B7280]">Farm and coop health alerts generated from poultry droppings analysis.</p>
       </div>
       <AlertsTable alerts={alerts} />
     </section>

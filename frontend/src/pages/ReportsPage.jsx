@@ -179,18 +179,15 @@ export default function ReportsPage({ realtime }) {
       : selectedFarmOption?.name || selectedFarm || "Select farm";
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full space-y-8 pb-12">
       <div className="space-y-4">
         <Breadcrumbs
           items={buildBreadcrumbItems(reportType, selectedFarm, selectedCoop, selectedFarmOption, selectedCoopOption)}
           levelLabel={reportLevelLabel}
         />
         <div className="min-w-0">
-          <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
-            {reportLevelLabel}
-          </span>
-          <h1 className="mt-2 truncate text-2xl font-bold text-[#102A1C]">Reports</h1>
-          <p className="text-sm text-[#64748B]">
+          <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Reports</h1>
+          <p className="mt-1 text-sm text-[#6B7280]">
             Reports summarize health, devices, detections, and alerts for the selected level.
           </p>
         </div>
@@ -220,16 +217,16 @@ export default function ReportsPage({ realtime }) {
           <EmptyState title="No farms available" message="Register devices or create farms before running reports." />
         ) : (
           <form
-            className="grid gap-4 lg:grid-cols-[220px_minmax(180px,1fr)_minmax(180px,1fr)_auto]"
+            className="grid gap-4 lg:grid-cols-[220px_minmax(180px,1fr)_minmax(180px,1fr)_auto] items-end"
             onSubmit={(event) => {
               event.preventDefault();
               loadReport({ showLoading: true, updateUrl: true });
             }}
           >
             <label className="text-sm">
-              <span className="font-semibold text-[#64748B]">Report Type</span>
+              <span className="font-medium text-[#6B7280]">Report Type</span>
               <select
-                className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
                 value={reportType}
                 onChange={(event) => handleReportTypeChange(event.target.value)}
               >
@@ -238,9 +235,9 @@ export default function ReportsPage({ realtime }) {
               </select>
             </label>
             <label className="text-sm">
-              <span className="font-semibold text-[#64748B]">Farm</span>
+              <span className="font-medium text-[#6B7280]">Farm</span>
               <select
-                className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
                 value={selectedFarm}
                 onChange={(event) => handleFarmChange(event.target.value)}
               >
@@ -252,9 +249,9 @@ export default function ReportsPage({ realtime }) {
               </select>
             </label>
             <label className={`text-sm ${reportType === "coop" ? "" : "opacity-60"}`}>
-              <span className="font-semibold text-[#64748B]">Coop</span>
+              <span className="font-medium text-[#6B7280]">Coop</span>
               <select
-                className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
                 value={selectedCoop}
                 onChange={(event) => {
                   setSelectedCoop(event.target.value);
@@ -272,7 +269,7 @@ export default function ReportsPage({ realtime }) {
               </select>
             </label>
             <button
-              className="self-end rounded-lg bg-[#14532D] px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
+              className="rounded-xl bg-[#15803D] px-5 py-2.5 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none"
               type="submit"
               disabled={!selectedFarm || (reportType === "coop" && !selectedCoop) || isReportLoading}
             >

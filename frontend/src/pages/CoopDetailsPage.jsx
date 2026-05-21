@@ -93,7 +93,7 @@ export default function CoopDetailsPage({ realtime }) {
   const activeAlerts = coop?.active_alerts ?? report?.recent_alerts?.length ?? 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-12">
       <div className="space-y-4">
         <Breadcrumbs
           items={[
@@ -104,27 +104,24 @@ export default function CoopDetailsPage({ realtime }) {
           ]}
           levelLabel="Coop Level"
         />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
-              Coop Level
-            </span>
-            <h1 className="mt-2 truncate text-2xl font-bold text-[#102A1C]">{coopName}</h1>
-            <p className="text-sm text-[#64748B]">
+            <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21] truncate">{coopName}</h1>
+            <p className="mt-1 text-sm text-[#6B7280]">
               Part of {farmName} · {devices.length} cameras · {activeAlerts} active alerts
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {firstDeviceId ? (
-              <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/devices/${firstDeviceId}`}>
+              <Link className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors" to={`/devices/${firstDeviceId}`}>
                 Open Camera
               </Link>
             ) : null}
-            <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
-              View Coop Gallery
+            <Link className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
+              View Gallery
             </Link>
-            <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to={`/reports?type=coop&farm_id=${encodeURIComponent(farmId || "")}&coop_id=${encodeURIComponent(coop?.id || coopId)}`}>
-              View Coop Report
+            <Link className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm hover:bg-green-800 transition-colors" to={`/reports?type=coop&farm_id=${encodeURIComponent(farmId || "")}&coop_id=${encodeURIComponent(coop?.id || coopId)}`}>
+              View Report
             </Link>
           </div>
         </div>
@@ -144,40 +141,30 @@ export default function CoopDetailsPage({ realtime }) {
         onRefresh={refreshManually}
       />
       {successMessage ? (
-        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+        <p className="rounded-xl border border-green-200 bg-[#F0FDF4] p-4 text-sm font-semibold text-[#15803D]">
           {successMessage}
         </p>
       ) : null}
       <Card
-        title={coop?.name || "Coop"}
-        description={coop?.description || "Coop overview, cameras, sensor history, and health alerts."}
-        action={
-          <div className="flex flex-wrap justify-end gap-2">
-            <Link className="rounded-lg border border-[#CFE8D7] bg-white px-4 py-2 text-sm font-semibold text-[#14532D]" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
-              View Coop Gallery
-            </Link>
-            <Link className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white" to={`/reports?type=coop&farm_id=${encodeURIComponent(farmId || "")}&coop_id=${encodeURIComponent(coop?.id || coopId)}`}>
-              View Coop Report
-            </Link>
-          </div>
-        }
+        title={coop?.name || "Coop Overview"}
+        description={coop?.description || "Coop operational status and infrastructure."}
       >
         <div className="grid gap-4 sm:grid-cols-3">
           <Metric label="Capacity" value={coop?.capacity ?? "Not set"} />
           <Metric label="Devices" value={coop?.number_of_devices} />
-          <Metric label="Active Alerts" value={coop?.active_alerts} danger />
+          <Metric label="Active Alerts" value={coop?.active_alerts} danger={coop?.active_alerts > 0} />
         </div>
       </Card>
 
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-bold text-[#102A1C]">Camera Devices</h2>
-          <p className="text-sm text-[#64748B]">Device cards include a live stream placeholder for future ESP32-CAM/IP camera integration.</p>
+          <h2 className="text-xl font-bold tracking-tight text-[#1C2B21]">Camera Devices</h2>
+          <p className="text-sm text-[#6B7280]">Device cards include a live stream placeholder for future ESP32-CAM/IP camera integration.</p>
         </div>
         {!devices.length ? (
           <EmptyState title="No camera devices" message="Registered devices for this coop will appear here." />
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             {devices.map((device) => (
               <DeviceCard key={device.id} device={device} />
             ))}
@@ -185,7 +172,7 @@ export default function CoopDetailsPage({ realtime }) {
         )}
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-2">
+      <section className="grid gap-6 xl:grid-cols-2">
         <Card
           title="Latest Droppings Analysis"
           description="Most recent fecal image classification for this coop."
@@ -228,11 +215,13 @@ export default function CoopDetailsPage({ realtime }) {
 
       <Card title="Health Alerts" description="Sick detections from droppings analysis for this coop.">
         {report?.recent_alerts?.length ? (
-          <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {report.recent_alerts.map((alert) => (
-              <p key={alert.id} className="rounded-lg border border-[#FECACA] bg-red-50 p-3 text-sm text-[#7F1D1D]">
-                {alert.disease_type || "Sick detection"} on {alert.device_id} at {formatDateTime(alert.timestamp)}.
-              </p>
+              <div key={alert.id} className="rounded-xl border border-red-100 bg-[#FEF2F2] p-4 text-sm text-red-800">
+                <p className="font-semibold mb-1">{alert.disease_type || "Sick detection"}</p>
+                <p className="text-xs text-red-600">Device {alert.device_id}</p>
+                <p className="text-xs text-red-600 mt-2">{formatDateTime(alert.timestamp)}</p>
+              </div>
             ))}
           </div>
         ) : (
@@ -245,18 +234,18 @@ export default function CoopDetailsPage({ realtime }) {
 
 function Metric({ label, value, danger = false }) {
   return (
-    <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FBF8] p-4">
-      <p className="text-xs font-semibold uppercase text-[#64748B]">{label}</p>
-      <p className={`mt-2 text-2xl font-bold ${danger ? "text-[#DC2626]" : "text-[#102A1C]"}`}>{value ?? 0}</p>
+    <div className="rounded-xl border border-gray-100 bg-[#F9FAF9] p-4">
+      <p className="text-xs font-semibold text-[#6B7280]">{label}</p>
+      <p className={`mt-2 text-2xl font-bold tracking-tight ${danger ? "text-red-600" : "text-[#1C2B21]"}`}>{value ?? 0}</p>
     </div>
   );
 }
 
 function Row({ label, value }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-[#EEF2F7] pb-2 last:border-0">
-      <dt className="text-[#64748B]">{label}</dt>
-      <dd className="max-w-[65%] truncate text-right font-semibold text-[#102A1C]" title={value || undefined}>
+    <div className="flex justify-between gap-4 border-b border-gray-100 pb-2 last:border-0">
+      <dt className="text-[#6B7280]">{label}</dt>
+      <dd className="max-w-[65%] truncate text-right font-medium text-[#1C2B21]" title={value || undefined}>
         {value || "N/A"}
       </dd>
     </div>

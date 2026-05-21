@@ -1,9 +1,9 @@
 const STATUS_CLASS_NAMES = {
-  healthy: "bg-[#DCFCE7] text-[#14532D] ring-[#86EFAC]",
-  sick: "bg-red-50 text-[#DC2626] ring-red-200",
-  online: "bg-[#DCFCE7] text-[#14532D] ring-[#86EFAC]",
-  offline: "bg-slate-100 text-[#475569] ring-slate-300",
-  unknown: "bg-slate-100 text-[#64748B] ring-slate-200",
+  healthy: "bg-green-50 text-[#15803D] ring-green-200",
+  sick: "bg-red-50 text-red-700 ring-red-200",
+  online: "bg-green-50 text-[#15803D] ring-green-200",
+  offline: "bg-gray-50 text-[#6B7280] ring-gray-200",
+  unknown: "bg-gray-50 text-[#6B7280] ring-gray-200",
 };
 
 export function getStatusLabel(status) {

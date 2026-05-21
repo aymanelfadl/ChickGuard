@@ -13,10 +13,10 @@ import StatusBadge from "./StatusBadge.jsx";
 
 function ValueRow({ label, value, title }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[#EEF2F7] py-3 last:border-0">
-      <dt className="text-sm font-medium text-[#64748B]">{label}</dt>
+    <div className="flex items-start justify-between gap-4 border-b border-gray-100 py-3 last:border-0">
+      <dt className="text-sm font-medium text-[#6B7280]">{label}</dt>
       <dd
-        className="min-w-0 max-w-[62%] truncate text-right text-sm font-semibold text-[#102A1C]"
+        className="min-w-0 max-w-[62%] truncate text-right text-sm font-semibold text-[#1C2B21]"
         title={title || value || undefined}
       >
         {value || "N/A"}
@@ -28,14 +28,14 @@ function ValueRow({ label, value, title }) {
 function LocationSummary({ status }) {
   return (
     <div className="mt-2 flex flex-wrap gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#F1F5F9] px-3 py-1 text-xs font-medium text-[#475569]">
-        <MapPin className="h-3.5 w-3.5 text-[#16A34A]" aria-hidden="true" />
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-50 border border-gray-100 px-3 py-1 text-xs font-medium text-[#6B7280]">
+        <MapPin className="h-3.5 w-3.5 text-[#15803D]" aria-hidden="true" />
         Device {status.deviceId || "N/A"}
       </span>
-      <span className="rounded-full bg-[#F1F5F9] px-3 py-1 text-xs font-medium text-[#475569]">
+      <span className="rounded-full bg-gray-50 border border-gray-100 px-3 py-1 text-xs font-medium text-[#6B7280]">
         Farm {status.farmId || "N/A"}
       </span>
-      <span className="rounded-full bg-[#F1F5F9] px-3 py-1 text-xs font-medium text-[#475569]">
+      <span className="rounded-full bg-gray-50 border border-gray-100 px-3 py-1 text-xs font-medium text-[#6B7280]">
         Coop {status.coopId || "N/A"}
       </span>
     </div>
@@ -44,12 +44,12 @@ function LocationSummary({ status }) {
 
 function SensorMetric({ icon: Icon, label, value }) {
   return (
-    <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FBF8] p-4">
-      <div className="flex items-center gap-2 text-sm font-medium text-[#64748B]">
-        <Icon className="h-4 w-4 text-[#16A34A]" aria-hidden="true" />
+    <div className="rounded-xl border border-gray-100 bg-[#F9FAF9] p-4">
+      <div className="flex items-center gap-2 text-sm font-medium text-[#6B7280]">
+        <Icon className="h-4 w-4 text-[#15803D]" aria-hidden="true" />
         {label}
       </div>
-      <p className="mt-3 text-2xl font-bold text-[#102A1C]">{value}</p>
+      <p className="mt-3 text-2xl font-bold tracking-tight text-[#1C2B21]">{value}</p>
     </div>
   );
 }
@@ -59,14 +59,14 @@ export default function LatestStatus({ status }) {
   const prediction = status.latestPrediction;
 
   return (
-    <section className="grid gap-4 lg:grid-cols-2">
+    <section className="grid gap-6 lg:grid-cols-2">
       <Card
         title="Latest Sensor Status"
         description={<LocationSummary status={status} />}
         className="min-h-[300px]"
       >
         {sensor ? (
-          <div className="space-y-5">
+          <div className="space-y-6">
             <div className="grid gap-3 sm:grid-cols-3">
               <SensorMetric
                 icon={Thermometer}
@@ -80,7 +80,7 @@ export default function LatestStatus({ status }) {
               />
               <SensorMetric icon={Scale} label="Weight" value={formatWeight(sensor.weightKg)} />
             </div>
-            <dl className="rounded-lg border border-[#E2E8F0] px-4">
+            <dl className="rounded-xl border border-gray-100 px-4">
               <ValueRow label="Last Reading" value={formatDateTime(sensor.timestamp)} />
             </dl>
           </div>
@@ -99,16 +99,16 @@ export default function LatestStatus({ status }) {
         className="min-h-[300px]"
       >
         {prediction ? (
-          <div className="space-y-5">
-            <div className="rounded-lg border border-[#BBF7D0] bg-gradient-to-br from-[#F0FDF4] to-white p-5">
+          <div className="space-y-6">
+            <div className="rounded-xl border border-green-100 bg-[#F5FAF6] p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-[#64748B]">Droppings Analysis</p>
-                  <p className="mt-2 text-2xl font-bold text-[#102A1C]">
+                  <p className="text-sm font-medium text-[#6B7280]">Droppings Analysis</p>
+                  <p className="mt-2 text-2xl font-bold tracking-tight text-[#1C2B21]">
                     {prediction.diseaseType || "No disease detected"}
                   </p>
                 </div>
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white text-[#14532D] ring-1 ring-[#BBF7D0]">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#15803D] ring-1 ring-green-100 shadow-sm">
                   {prediction.diseaseType ? (
                     <Camera className="h-5 w-5" aria-hidden="true" />
                   ) : (
@@ -117,7 +117,7 @@ export default function LatestStatus({ status }) {
                 </div>
               </div>
             </div>
-            <dl className="rounded-lg border border-[#E2E8F0] px-4">
+            <dl className="rounded-xl border border-gray-100 px-4">
               <ValueRow label="Confidence" value={formatPercent(prediction.confidence)} />
               <ValueRow
                 label="Droppings Image"

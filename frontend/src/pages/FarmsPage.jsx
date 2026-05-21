@@ -69,8 +69,8 @@ export default function FarmsPage({ user }) {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-3">
+    <div className="space-y-8 pb-12">
+      <div className="space-y-4">
         <Breadcrumbs
           items={[
             { label: "Dashboard", to: "/dashboard" },
@@ -80,11 +80,8 @@ export default function FarmsPage({ user }) {
         />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <span className="inline-flex rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-bold uppercase text-[#14532D]">
-              Farm Level
-            </span>
-            <h1 className="mt-2 text-2xl font-bold text-[#102A1C]">Farms</h1>
-            <p className="text-sm text-[#64748B]">Farm-level health status, coops, devices, and active alerts.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Farms</h1>
+            <p className="mt-1 text-sm text-[#6B7280]">Farm-level health status, coops, devices, and active alerts.</p>
           </div>
           {isAdmin ? (
             <button
@@ -93,7 +90,7 @@ export default function FarmsPage({ user }) {
                 setSubmitError("");
                 setIsCreateOpen(true);
               }}
-              className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+              className="rounded-xl bg-[#15803D] px-4 py-2.5 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800"
             >
               Add Farm
             </button>
@@ -102,7 +99,7 @@ export default function FarmsPage({ user }) {
       </div>
 
       {successMessage ? (
-        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+        <p className="rounded-xl border border-green-200 bg-[#F0FDF4] p-4 text-sm font-semibold text-[#15803D]">
           {successMessage}
         </p>
       ) : null}
@@ -110,7 +107,7 @@ export default function FarmsPage({ user }) {
       <section className="space-y-4">
         {!farms.length ? (
           <Card title="No Farms">
-            <div className="space-y-4">
+            <div className="space-y-6 py-6">
               <EmptyState title="No farms created yet" message="Add your first farm to start monitoring poultry health." />
               {isAdmin ? (
                 <div className="text-center">
@@ -120,7 +117,7 @@ export default function FarmsPage({ user }) {
                       setSubmitError("");
                       setIsCreateOpen(true);
                     }}
-                    className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+                    className="rounded-xl bg-[#15803D] px-4 py-2.5 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800"
                   >
                     Add Farm
                   </button>
@@ -129,7 +126,7 @@ export default function FarmsPage({ user }) {
             </div>
           </Card>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             {farms.map((farm) => (
               <FarmCard key={farm.id} farm={farm} />
             ))}

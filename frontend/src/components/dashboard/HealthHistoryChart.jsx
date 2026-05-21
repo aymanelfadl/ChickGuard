@@ -32,20 +32,20 @@ function ChartTooltip({ active, payload, label }) {
   const values = Object.fromEntries(payload.map((item) => [item.dataKey, item.value]));
 
   return (
-    <div className="rounded-lg border border-[#E2E8F0] bg-white p-4 shadow-[0_18px_45px_rgba(20,83,45,0.12)]">
-      <p className="mb-3 text-sm font-semibold text-[#102A1C]">{formatDateTime(label)}</p>
+    <div className="rounded-xl border border-gray-100 bg-white p-4 shadow-apple-sm">
+      <p className="mb-3 text-sm font-semibold text-[#1C2B21]">{formatDateTime(label)}</p>
       <div className="space-y-2 text-sm">
-        <p className="flex items-center justify-between gap-8 text-[#64748B]">
+        <p className="flex items-center justify-between gap-8 text-[#6B7280]">
           <span>Temperature</span>
-          <span className="font-semibold text-[#102A1C]">{formatTemperature(values.temperatureC)}</span>
+          <span className="font-semibold text-[#1C2B21]">{formatTemperature(values.temperatureC)}</span>
         </p>
-        <p className="flex items-center justify-between gap-8 text-[#64748B]">
+        <p className="flex items-center justify-between gap-8 text-[#6B7280]">
           <span>Humidity</span>
-          <span className="font-semibold text-[#102A1C]">{formatHumidity(values.humidityPercent)}</span>
+          <span className="font-semibold text-[#1C2B21]">{formatHumidity(values.humidityPercent)}</span>
         </p>
-        <p className="flex items-center justify-between gap-8 text-[#64748B]">
+        <p className="flex items-center justify-between gap-8 text-[#6B7280]">
           <span>Weight</span>
-          <span className="font-semibold text-[#102A1C]">{formatWeight(values.weightKg)}</span>
+          <span className="font-semibold text-[#1C2B21]">{formatWeight(values.weightKg)}</span>
         </p>
       </div>
     </div>
@@ -75,36 +75,36 @@ export default function HealthHistoryChart({ history }) {
       <div className="h-[360px] w-full sm:h-[420px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={chartData} margin={{ top: 16, right: 12, left: -18, bottom: 8 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
             <XAxis
               dataKey="timestamp"
               tickFormatter={formatChartTime}
               minTickGap={28}
-              tick={{ fill: "#64748B", fontSize: 12 }}
+              tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
               tickLine={false}
-              axisLine={{ stroke: "#E2E8F0" }}
+              axisLine={{ stroke: "#F3F4F6" }}
             />
             <YAxis
               yAxisId="environment"
-              tick={{ fill: "#64748B", fontSize: 12 }}
+              tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
               tickLine={false}
               axisLine={false}
             />
             <YAxis
               yAxisId="weight"
               orientation="right"
-              tick={{ fill: "#64748B", fontSize: 12 }}
+              tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
               tickLine={false}
               axisLine={false}
             />
-            <Tooltip content={<ChartTooltip />} cursor={{ stroke: "#86EFAC", strokeWidth: 1 }} />
+            <Tooltip content={<ChartTooltip />} cursor={{ stroke: "#15803D", strokeWidth: 1, strokeDasharray: "4 4" }} />
             <Legend wrapperStyle={{ paddingTop: 18 }} iconType="circle" />
             <Line
               yAxisId="environment"
               type="monotone"
               dataKey="temperatureC"
               name="Temperature C"
-              stroke="#D97706"
+              stroke="#F59E0B"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 5, strokeWidth: 2, stroke: "#FFFFFF" }}
@@ -114,7 +114,7 @@ export default function HealthHistoryChart({ history }) {
               type="monotone"
               dataKey="humidityPercent"
               name="Humidity %"
-              stroke="#2563eb"
+              stroke="#3B82F6"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 5, strokeWidth: 2, stroke: "#FFFFFF" }}
@@ -124,7 +124,7 @@ export default function HealthHistoryChart({ history }) {
               type="monotone"
               dataKey="weightKg"
               name="Weight kg"
-              stroke="#16a34a"
+              stroke="#15803D"
               strokeWidth={3}
               dot={false}
               activeDot={{ r: 5, strokeWidth: 2, stroke: "#FFFFFF" }}

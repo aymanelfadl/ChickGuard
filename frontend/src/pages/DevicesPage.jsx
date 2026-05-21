@@ -11,6 +11,7 @@ import DeviceForm from "../components/forms/DeviceForm.jsx";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchFarmCoops, fetchFarms } from "../services/farmService.js";
 import { fetchDevice, fetchDevices, registerDevice, updateDevice } from "../services/deviceService.js";
+import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 
 export default function DevicesPage({ realtime, user }) {
   const [devices, setDevices] = useState([]);
@@ -172,6 +173,7 @@ export default function DevicesPage({ realtime, user }) {
 
   return (
     <section className="space-y-4">
+      <Breadcrumbs items={[{ label: "Devices", to: "/devices" }]} levelLabel="System Devices" />
       <LiveUpdateStatus
         realtimeStatus={realtime?.status}
         lastUpdatedAt={lastUpdatedAt}
@@ -180,30 +182,30 @@ export default function DevicesPage({ realtime, user }) {
         isRefreshing={isRefreshing}
         onRefresh={refreshManually}
       />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[#102A1C]">Devices / Cameras</h2>
-          <p className="text-sm text-[#64748B]">Registered ESP32/ESP32-CAM devices, camera placeholders, and latest droppings analysis.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Devices / Cameras</h2>
+          <p className="mt-1 text-sm text-[#6B7280]">Registered ESP32/ESP32-CAM devices, camera placeholders, and latest droppings analysis.</p>
         </div>
         {isAdmin ? (
           <button
             type="button"
             onClick={openRegisterModal}
-            className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
+            className="rounded-xl bg-[#15803D] px-5 py-2.5 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800"
           >
             Register Device / Camera
           </button>
         ) : null}
       </div>
       {successMessage ? (
-        <p className="rounded-lg border border-[#BBF7D0] bg-[#F0FDF4] p-3 text-sm font-semibold text-[#14532D]">
+        <p className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm font-medium text-green-800 shadow-apple-sm">
           {successMessage}
         </p>
       ) : null}
       {generatedApiKey ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 shadow-apple-sm">
           <p className="font-bold">Copy this API key now. It will not be shown again.</p>
-          <code className="mt-2 block overflow-x-auto rounded bg-white px-3 py-2 font-mono text-xs text-[#102A1C]">
+          <code className="mt-3 block overflow-x-auto rounded-lg bg-white p-3 font-mono text-xs text-[#1C2B21] shadow-inner">
             {generatedApiKey}
           </code>
         </div>
