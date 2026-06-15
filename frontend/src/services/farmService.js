@@ -23,3 +23,9 @@ export function createFarm(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function deleteFarm(farmId) {
+  return fetchJson(FARM_ENDPOINTS.farm(farmId), {
+    method: "DELETE",
+  });
+}

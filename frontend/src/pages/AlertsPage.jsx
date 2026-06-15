@@ -56,7 +56,7 @@ export default function AlertsPage({ realtime }) {
 
   return (
     <section className="space-y-4">
-      <Breadcrumbs items={[{ label: "Alerts", to: "/alerts" }]} levelLabel="System Alerts" />
+      <Breadcrumbs items={[{ label: "Image Alerts", to: "/alerts" }]} levelLabel="Droppings Image Alerts" />
       <LiveUpdateStatus
         realtimeStatus={realtime?.status}
         lastUpdatedAt={lastUpdatedAt}
@@ -66,8 +66,10 @@ export default function AlertsPage({ realtime }) {
         onRefresh={refreshManually}
       />
       <div>
-        <h2 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Health Alerts</h2>
-        <p className="mt-1 text-sm text-[#6B7280]">Farm and coop health alerts generated from poultry droppings analysis.</p>
+        <h2 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Droppings Image Alerts</h2>
+        <p className="mt-1 text-sm text-[#6B7280]">
+          Image-based disease alerts generated only from poultry droppings analysis.
+        </p>
       </div>
       <AlertsTable alerts={alerts} />
     </section>

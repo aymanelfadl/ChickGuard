@@ -44,3 +44,10 @@ export function formatWeight(value) {
 export function formatHumidity(value) {
   return value === null || value === undefined ? "N/A" : `${formatNumber(value, 0)}%`;
 }
+
+export function formatMotion(value) {
+  if (value === null || value === undefined) {
+    return "N/A";
+  }
+  return Number(value) === 1 ? "Movement detected" : "No movement";
+}

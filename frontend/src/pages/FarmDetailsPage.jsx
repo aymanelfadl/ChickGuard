@@ -16,7 +16,7 @@ import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { createCoop } from "../services/coopService.js";
-import { fetchFarm, fetchFarmCoops } from "../services/farmService.js";
+import { deleteFarm, fetchFarm, fetchFarmCoops } from "../services/farmService.js";
 import { fetchFarmReport } from "../services/reportService.js";
 
 export default function FarmDetailsPage({ realtime, user }) {
@@ -32,6 +32,7 @@ export default function FarmDetailsPage({ realtime, user }) {
   const [isCreateCoopOpen, setIsCreateCoopOpen] = useState(false);
   const [isSubmittingCoop, setIsSubmittingCoop] = useState(false);
   const [coopSubmitError, setCoopSubmitError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
   const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const galleryFarmId = farm?.name || farmId;
   const recentImages = useImageGallery({ farm_id: galleryFarmId, limit: 6, offset: 0 });
@@ -103,6 +104,23 @@ export default function FarmDetailsPage({ realtime, user }) {
     }
   }
 
+  async function handleDeleteFarm() {
+    if (!farm || !window.confirm(`Delete farm "${farm.name || farmId}"? This only works when the farm has no coops, devices, or readings.`)) {
+      return;
+    }
+
+    setDeleteError("");
+    setSuccessMessage("");
+    try {
+      await deleteFarm(farm.id || farmId);
+      navigate("/farms", {
+        state: { successMessage: `${farm.name || "Farm"} deleted.` },
+      });
+    } catch (deleteFarmError) {
+      setDeleteError(deleteFarmError.message || "Unable to delete farm.");
+    }
+  }
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -130,21 +148,31 @@ export default function FarmDetailsPage({ realtime, user }) {
           <div className="min-w-0">
             <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21] truncate">{farmName}</h1>
             <p className="mt-1 text-sm text-[#6B7280]">
-              {[farm?.location, `${coops.length} coops`, `${activeAlerts} active alerts`].filter(Boolean).join(" · ")}
+              {[farm?.location, `${coops.length} coops`, `${activeAlerts} image alerts`].filter(Boolean).join(" · ")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {isAdmin ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setCoopSubmitError("");
-                  setIsCreateCoopOpen(true);
-                }}
-                className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm hover:bg-green-800 transition-colors"
-              >
-                Add Coop
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoopSubmitError("");
+                    setDeleteError("");
+                    setIsCreateCoopOpen(true);
+                  }}
+                  className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm hover:bg-green-800 transition-colors"
+                >
+                  Add Coop
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteFarm}
+                  className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-apple-sm hover:bg-red-50 transition-colors"
+                >
+                  Delete Farm
+                </button>
+              </>
             ) : null}
             {firstCoop ? (
               <Link className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors" to={`/coops/${firstCoop.id}`}>
@@ -178,6 +206,11 @@ export default function FarmDetailsPage({ realtime, user }) {
           {successMessage}
         </p>
       ) : null}
+      {deleteError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {deleteError}
+        </p>
+      ) : null}
       <Card
         title={farm?.name || "Farm Overview"}
         description={farm?.location || "Operational status and infrastructure."}
@@ -187,7 +220,7 @@ export default function FarmDetailsPage({ realtime, user }) {
           <Metric label="Devices" value={farm?.number_of_devices} />
           <Metric label="Online" value={report?.online_devices ?? 0} />
           <Metric label="Offline" value={report?.offline_devices ?? 0} danger={report?.offline_devices > 0} />
-          <Metric label="Active Alerts" value={farm?.active_alerts} danger={farm?.active_alerts > 0} />
+          <Metric label="Image Alerts" value={farm?.active_alerts} danger={farm?.active_alerts > 0} />
           <Metric label="Latest Status" value={farm?.latest_health_status || "Unknown"} />
         </div>
       </Card>
@@ -195,7 +228,7 @@ export default function FarmDetailsPage({ realtime, user }) {
       <section className="space-y-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[#1C2B21]">Coops</h2>
-          <p className="text-sm text-[#6B7280]">Coop-level monitoring and alerts inside this farm.</p>
+          <p className="text-sm text-[#6B7280]">Coop-level monitoring and droppings image alerts inside this farm.</p>
         </div>
         {!coops.length ? (
           <div className="space-y-6">
@@ -246,7 +279,7 @@ export default function FarmDetailsPage({ realtime, user }) {
         />
       </Card>
 
-      <Card title="Recent Farm Alerts" description="Health alerts from droppings analysis.">
+      <Card title="Recent Droppings Image Alerts" description="Image-based disease alerts from droppings analysis.">
         {report?.recent_alerts?.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {report.recent_alerts.slice(0, 6).map((alert) => (
@@ -258,7 +291,7 @@ export default function FarmDetailsPage({ realtime, user }) {
             ))}
           </div>
         ) : (
-          <EmptyState title="No active farm alerts" message="Sick detections from droppings analysis will appear here." />
+          <EmptyState title="No droppings image alerts" message="Sick detections from droppings analysis will appear here." />
         )}
       </Card>
 

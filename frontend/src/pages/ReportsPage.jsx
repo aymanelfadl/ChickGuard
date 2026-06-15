@@ -1,32 +1,39 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
+import DecisionRules from "../components/common/DecisionRules.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
+import StatusBadge from "../components/dashboard/StatusBadge.jsx";
 import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import ReportAlerts from "../components/reports/ReportAlerts.jsx";
-import ReportDetectionSummary from "../components/reports/ReportDetectionSummary.jsx";
 import ReportDeviceStatus from "../components/reports/ReportDeviceStatus.jsx";
 import ReportHeader from "../components/reports/ReportHeader.jsx";
-import ReportHealthSummary from "../components/reports/ReportHealthSummary.jsx";
-import ReportImages from "../components/reports/ReportImages.jsx";
-import ReportJsonViewer from "../components/reports/ReportJsonViewer.jsx";
 import ReportLatestSensor from "../components/reports/ReportLatestSensor.jsx";
 import ReportSummaryCards from "../components/reports/ReportSummaryCards.jsx";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchCoopReport, fetchFarmReport, fetchReportOptions } from "../services/reportService.js";
+import {
+  formatDateTime,
+  formatHumidity,
+  formatNumber,
+  formatPercent,
+  formatTemperature,
+} from "../utils/formatters.js";
 
 export default function ReportsPage({ realtime }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const querySeed = searchParams.toString();
   const [farms, setFarms] = useState([]);
   const [coops, setCoops] = useState([]);
   const [report, setReport] = useState(null);
   const [selectedFarm, setSelectedFarm] = useState("");
   const [selectedCoop, setSelectedCoop] = useState("");
+  const [reportDate, setReportDate] = useState(searchParams.get("date") || localDateInputValue());
   const [reportType, setReportType] = useState(searchParams.get("type") === "coop" ? "coop" : "farm");
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [isReportLoading, setIsReportLoading] = useState(false);
@@ -42,55 +49,13 @@ export default function ReportsPage({ realtime }) {
     () => coops.find((item) => String(item.id) === String(selectedCoop)),
     [coops, selectedCoop],
   );
-  const reportTypeLabel = reportType === "coop" ? "Coop Report" : "Farm Report";
-  const reportLevelLabel = reportType === "coop" ? "Coop Report Level" : "Farm Report Level";
-  const queryReportKey = useMemo(() => {
-    const type = searchParams.get("type");
-    const farmId = searchParams.get("farm_id");
-    const coopId = searchParams.get("coop_id");
-    if (!type || !farmId || (type === "coop" && !coopId)) {
+
+  const reportKey = useMemo(() => {
+    if (!selectedFarm || (reportType === "coop" && !selectedCoop)) {
       return "";
     }
-    return `${type}:${farmId}:${coopId || ""}`;
-  }, [searchParams]);
-
-  useEffect(() => {
-    async function loadOptions() {
-      setIsLoadingOptions(true);
-      setError(null);
-      try {
-        const reportOptions = await fetchReportOptions();
-        setFarms(reportOptions);
-      } catch (loadError) {
-        setError(loadError.message || "Unable to load report options.");
-      } finally {
-        setIsLoadingOptions(false);
-      }
-    }
-
-    loadOptions();
-  }, []);
-
-  useEffect(() => {
-    if (!farms.length) {
-      return;
-    }
-
-    const requestedType = searchParams.get("type") === "coop" ? "coop" : "farm";
-    const requestedFarm = searchParams.get("farm_id");
-    const requestedCoop = searchParams.get("coop_id");
-    const nextFarm =
-      (requestedFarm ? farms.find((farm) => String(farm.id) === String(requestedFarm)) : null) || farms[0];
-    const nextCoops = nextFarm?.coops || [];
-    const nextCoop = nextCoops.find((coop) => String(coop.id) === String(requestedCoop));
-
-    setReportType(requestedType);
-    setSelectedFarm(String(nextFarm.id));
-    setCoops(nextCoops);
-    if (requestedType === "coop") {
-      setSelectedCoop(nextCoop ? String(nextCoop.id) : "");
-    }
-  }, [farms, searchParams]);
+    return `${reportType}:${selectedFarm}:${selectedCoop || ""}:${reportDate}`;
+  }, [reportDate, reportType, selectedCoop, selectedFarm]);
 
   const loadReport = useCallback(async ({ showLoading = true, updateUrl = false } = {}) => {
     if (!selectedFarm || (reportType === "coop" && !selectedCoop)) {
@@ -105,18 +70,19 @@ export default function ReportsPage({ realtime }) {
     try {
       const nextReport =
         reportType === "coop"
-          ? await fetchCoopReport(selectedCoop)
-          : await fetchFarmReport(selectedFarm);
-      const nextKey = `${reportType}:${selectedFarm}:${reportType === "coop" ? selectedCoop : ""}`;
+          ? await fetchCoopReport(selectedCoop, { date: reportDate })
+          : await fetchFarmReport(selectedFarm, { date: reportDate });
 
+      const nextKey = `${reportType}:${selectedFarm}:${reportType === "coop" ? selectedCoop : ""}:${reportDate}`;
       setReport(nextReport);
       setLoadedReportKey(nextKey);
       setLastUpdatedAt(new Date().toISOString());
+
       if (updateUrl) {
         const params =
           reportType === "coop"
-            ? { type: "coop", farm_id: String(selectedFarm), coop_id: String(selectedCoop) }
-            : { type: "farm", farm_id: String(selectedFarm) };
+            ? { type: "coop", farm_id: String(selectedFarm), coop_id: String(selectedCoop), date: reportDate }
+            : { type: "farm", farm_id: String(selectedFarm), date: reportDate };
         setSearchParams(params);
       }
       return true;
@@ -128,15 +94,49 @@ export default function ReportsPage({ realtime }) {
         setIsReportLoading(false);
       }
     }
-  }, [reportType, selectedCoop, selectedFarm, setSearchParams]);
+  }, [reportDate, reportType, selectedCoop, selectedFarm, setSearchParams]);
 
   useEffect(() => {
-    if (isLoadingOptions || !queryReportKey || loadedReportKey === queryReportKey) {
-      return;
+    async function loadOptions() {
+      setIsLoadingOptions(true);
+      setError(null);
+      try {
+        const reportOptions = await fetchReportOptions();
+        const params = new URLSearchParams(querySeed);
+        const requestedType = params.get("type") === "coop" ? "coop" : "farm";
+        const requestedFarm = params.get("farm_id");
+        const requestedCoop = params.get("coop_id");
+        const requestedDate = params.get("date") || localDateInputValue();
+        const nextFarm =
+          (requestedFarm ? reportOptions.find((farm) => String(farm.id) === String(requestedFarm)) : null) ||
+          reportOptions[0];
+        const nextCoops = nextFarm?.coops || [];
+        const nextCoop = requestedCoop
+          ? nextCoops.find((coop) => String(coop.id) === String(requestedCoop))
+          : nextCoops[0];
+
+        setFarms(reportOptions);
+        setReportType(requestedType);
+        setSelectedFarm(nextFarm ? String(nextFarm.id) : "");
+        setCoops(nextCoops);
+        setSelectedCoop(requestedType === "coop" && nextCoop ? String(nextCoop.id) : "");
+        setReportDate(requestedDate);
+      } catch (loadError) {
+        setError(loadError.message || "Unable to load report options.");
+      } finally {
+        setIsLoadingOptions(false);
+      }
     }
 
+    loadOptions();
+  }, [querySeed]);
+
+  useEffect(() => {
+    if (isLoadingOptions || !reportKey || loadedReportKey === reportKey) {
+      return;
+    }
     loadReport({ showLoading: true, updateUrl: false });
-  }, [isLoadingOptions, loadReport, loadedReportKey, queryReportKey]);
+  }, [isLoadingOptions, loadReport, loadedReportKey, reportKey]);
 
   const { isRefreshing, lastRefreshEventType, liveUpdateReceived, refreshManually } = useRealtimeRefresh(
     realtime,
@@ -147,7 +147,7 @@ export default function ReportsPage({ realtime }) {
     const farm = farms.find((item) => String(item.id) === String(farmId));
     setSelectedFarm(farmId);
     setCoops(farm?.coops || []);
-    setSelectedCoop("");
+    setSelectedCoop(reportType === "coop" && farm?.coops?.[0] ? String(farm.coops[0].id) : "");
     setReport(null);
     setLoadedReportKey("");
   }
@@ -169,27 +169,38 @@ export default function ReportsPage({ realtime }) {
     return <ErrorState error={error} />;
   }
 
-  const reportMeta = buildReportMeta(report, reportType, selectedFarmOption, selectedCoopOption, lastUpdatedAt);
+  const reportMeta = buildReportMeta(report, reportType, selectedFarmOption, selectedCoopOption);
   const summaryCards = report ? buildSummaryCards(report, reportType) : [];
+  const latestSensor = report?.latest_sensor_readings?.[0] || null;
   const latestAnalysis = report ? getLatestAnalysis(report, reportType) : null;
-  const reportImages = report ? buildReportImages(report, reportType) : [];
-  const reportTargetLabel =
-    reportType === "coop"
-      ? selectedCoopOption?.name || selectedCoop || "Select coop"
-      : selectedFarmOption?.name || selectedFarm || "Select farm";
+  const traceability = report?.daily_traceability || null;
+  const reportTypeLabel = reportType === "coop" ? "Coop Report" : "Farm Report";
+  const fieldClassName =
+    "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-[#1C2B21] shadow-sm outline-none transition-colors focus:border-[#14532D] focus:ring-2 focus:ring-[#BBF7D0] disabled:bg-gray-100 disabled:text-[#94A3B8]";
 
   return (
     <div className="w-full space-y-8 pb-12">
       <div className="space-y-4">
         <Breadcrumbs
           items={buildBreadcrumbItems(reportType, selectedFarm, selectedCoop, selectedFarmOption, selectedCoopOption)}
-          levelLabel={reportLevelLabel}
+          levelLabel={reportTypeLabel}
         />
-        <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Reports</h1>
-          <p className="mt-1 text-sm text-[#6B7280]">
-            Reports summarize health, devices, detections, and alerts for the selected level.
-          </p>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Reports</h1>
+            <p className="mt-1 text-sm leading-6 text-[#64748B]">
+              Daily business view for droppings image alerts, combined rule actions, and sensor/image traceability.
+            </p>
+          </div>
+          {report ? (
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-sm hover:bg-gray-50"
+            >
+              Print Report
+            </button>
+          ) : null}
         </div>
         <HierarchyContext
           farm={selectedFarm ? { label: selectedFarmOption?.name || selectedFarm, to: `/farms/${selectedFarm}` } : null}
@@ -206,52 +217,45 @@ export default function ReportsPage({ realtime }) {
         realtimeStatus={realtime?.status}
         lastUpdatedAt={lastUpdatedAt}
         liveUpdateReceived={liveUpdateReceived}
-        liveUpdateLabel="New live data available"
+        liveUpdateLabel="New report data available"
         lastEventType={lastRefreshEventType}
         isRefreshing={isRefreshing || isReportLoading}
         onRefresh={refreshManually}
       />
 
-      <Card title="Report Selector" description="Choose the monitoring level and scope, then view the report.">
+      <Card title="Report Scope" description="Choose the business level and day to review. Reports auto-refresh after selection changes.">
         {!farms.length ? (
-          <EmptyState title="No farms available" message="Register devices or create farms before running reports." />
+          <EmptyState title="No farms available" message="Create farms and register devices before running reports." />
         ) : (
           <form
-            className="grid gap-4 lg:grid-cols-[220px_minmax(180px,1fr)_minmax(180px,1fr)_auto] items-end"
+            className="grid gap-4 lg:grid-cols-[190px_minmax(180px,1fr)_minmax(180px,1fr)_170px_auto] lg:items-end"
             onSubmit={(event) => {
               event.preventDefault();
               loadReport({ showLoading: true, updateUrl: true });
             }}
           >
-            <label className="text-sm">
-              <span className="font-medium text-[#6B7280]">Report Type</span>
+            <Field label="Level">
               <select
-                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
+                className={fieldClassName}
                 value={reportType}
                 onChange={(event) => handleReportTypeChange(event.target.value)}
               >
                 <option value="farm">Farm Report</option>
                 <option value="coop">Coop Report</option>
               </select>
-            </label>
-            <label className="text-sm">
-              <span className="font-medium text-[#6B7280]">Farm</span>
-              <select
-                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
-                value={selectedFarm}
-                onChange={(event) => handleFarmChange(event.target.value)}
-              >
+            </Field>
+            <Field label="Farm">
+              <select className={fieldClassName} value={selectedFarm} onChange={(event) => handleFarmChange(event.target.value)}>
                 {farms.map((farm) => (
                   <option key={farm.id} value={farm.id}>
                     {farm.name}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className={`text-sm ${reportType === "coop" ? "" : "opacity-60"}`}>
-              <span className="font-medium text-[#6B7280]">Coop</span>
+            </Field>
+            <Field label="Coop">
               <select
-                className="mt-1.5 w-full rounded-xl border border-gray-200 px-3 py-2 text-[#1C2B21] focus:border-[#15803D] focus:ring-1 focus:ring-[#15803D] focus:outline-none transition-colors"
+                className={fieldClassName}
                 value={selectedCoop}
                 onChange={(event) => {
                   setSelectedCoop(event.target.value);
@@ -267,24 +271,36 @@ export default function ReportsPage({ realtime }) {
                   </option>
                 ))}
               </select>
-            </label>
+            </Field>
+            <Field label="Day">
+              <input
+                className={fieldClassName}
+                type="date"
+                value={reportDate}
+                onChange={(event) => {
+                  setReportDate(event.target.value);
+                  setReport(null);
+                  setLoadedReportKey("");
+                }}
+              />
+            </Field>
             <button
-              className="rounded-xl bg-[#15803D] px-5 py-2.5 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none"
+              className="rounded-lg bg-[#14532D] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#166534] disabled:cursor-not-allowed disabled:bg-gray-300"
               type="submit"
-              disabled={!selectedFarm || (reportType === "coop" && !selectedCoop) || isReportLoading}
+              disabled={!reportKey || isReportLoading}
             >
-              {isReportLoading ? "Loading..." : "View Report"}
+              {isReportLoading ? "Loading..." : "Update"}
             </button>
           </form>
         )}
       </Card>
 
-      {!selectedFarm ? (
-        <EmptyState title="Select a farm to view its report." message="Choose a farm in the report selector above." />
-      ) : reportType === "coop" && !selectedCoop ? (
-        <EmptyState title="Select a coop to view its report." message="Choose a coop after selecting Coop Report." />
-      ) : !report ? (
-        <EmptyState title={`View ${reportTargetLabel} report`} message="Use the View Report button to generate a readable report." />
+      {error ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</p>
+      ) : null}
+
+      {!report ? (
+        <EmptyState title="No report loaded" message="Select a farm or coop to generate the business report." />
       ) : (
         <div className="space-y-6">
           <ReportHeader
@@ -293,29 +309,227 @@ export default function ReportsPage({ realtime }) {
             subtitle={reportMeta.subtitle}
             status={reportMeta.status}
             generatedAt={lastUpdatedAt}
-            levelLabel={reportLevelLabel}
+            levelLabel={reportTypeLabel}
           />
-          <ReportHealthSummary
-            reportType={reportTypeLabel}
-            name={reportMeta.title}
-            sickDetections={reportMeta.sickDetections}
-            activeAlerts={reportMeta.activeAlerts}
-          />
+
           <ReportSummaryCards items={summaryCards} />
-          <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.65fr)]">
-            <ReportDetectionSummary
-              healthyDetections={reportMeta.healthyDetections}
-              sickDetections={reportMeta.sickDetections}
-              latestAnalysis={latestAnalysis}
-            />
-            {reportType === "coop" ? <ReportLatestSensor sensor={report.latest_sensor_readings?.[0]} /> : null}
-          </div>
+
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+            <BusinessDecisionCard report={report} reportMeta={reportMeta} latestAnalysis={latestAnalysis} />
+            <ReportLatestSensor sensor={latestSensor} />
+          </section>
+
+          <DecisionRules
+            decisions={report.decisions || traceability?.decisions || []}
+            title="Rule Actions"
+            description="Combined sensor and image decisions from the rule engine."
+            limit={5}
+            compact
+          />
+
+          <TraceabilitySection traceability={traceability} />
+
+          <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+            <LatestAnalysisCard analysis={latestAnalysis} />
+            <ReportAlerts alerts={(report.recent_alerts || []).slice(0, 5)} />
+          </section>
+
           <ReportDeviceStatus devices={report.devices || []} />
-          <ReportAlerts alerts={report.recent_alerts || []} />
-          <ReportImages images={reportImages} />
-          <ReportJsonViewer report={report} />
         </div>
       )}
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="text-sm">
+      <span className="font-semibold text-[#475569]">{label}</span>
+      <div className="mt-1.5">{children}</div>
+    </label>
+  );
+}
+
+function BusinessDecisionCard({ report, reportMeta, latestAnalysis }) {
+  const activeAlerts = reportMeta.activeAlerts || 0;
+  const topDecision = (report.decisions || []).find((decision) => decision.severity !== "normal") || report.decisions?.[0];
+  const healthText = activeAlerts
+    ? `${activeAlerts} droppings image alert${activeAlerts === 1 ? "" : "s"}`
+    : "No droppings image alerts";
+
+  return (
+    <Card
+      title="Admin Decision Brief"
+      description="The useful business summary for the selected level and day."
+      action={<StatusBadge status={reportMeta.status} />}
+    >
+      <div className="grid gap-4 md:grid-cols-3">
+        <BriefMetric label="Image Alerts" value={healthText} danger={activeAlerts > 0} />
+        <BriefMetric label="Latest Analysis" value={latestAnalysis?.disease_type || latestAnalysis?.prediction_status || "No analysis"} />
+        <BriefMetric label="Devices" value={`${reportMeta.onlineDevices} online / ${reportMeta.offlineDevices} offline`} danger={reportMeta.offlineDevices > 0} />
+      </div>
+      <div className="mt-5 rounded-lg border border-gray-200 bg-[#F8FAFC] p-4">
+        <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#64748B]">Next Action</p>
+        <p className="mt-2 text-sm font-semibold text-[#1C2B21]">
+          {topDecision?.action || topDecision?.description || "Continue routine monitoring."}
+        </p>
+      </div>
+    </Card>
+  );
+}
+
+function TraceabilitySection({ traceability }) {
+  if (!traceability) {
+    return (
+      <Card title="Daily Traceability">
+        <EmptyState title="No daily traceability" message="Daily sensor, image, and rule history appears after data is received for the selected day." />
+      </Card>
+    );
+  }
+
+  const sensorSummary = traceability.sensor_summary || {};
+  const motion = sensorSummary.motion || {};
+  const periods = traceability.periods || [];
+
+  return (
+    <Card
+      title="Daily Traceability"
+      description={`Daily history of sensor readings, image analyses, and rule findings. Local date ${traceability.date || "N/A"} · ${traceability.timezone || "timezone not set"} · daylight ${traceability.daylight_window?.start_hour ?? "?"}:00-${traceability.daylight_window?.end_hour ?? "?"}:00`}
+    >
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <TraceMetric label="Sensor Readings" value={traceability.sensor_readings_count} />
+        <TraceMetric label="Droppings Analyses" value={traceability.droppings_analyses_count} />
+        <TraceMetric label="Sick Detections" value={traceability.sick_detections} danger={traceability.sick_detections > 0} />
+        <TraceMetric label="Motion Detected" value={formatMotionPercent(motion)} />
+      </div>
+
+      <div className="mt-5 grid gap-4 xl:grid-cols-2">
+        <DailySensorSummary sensorSummary={sensorSummary} />
+        <PeriodSummary periods={periods} />
+      </div>
+
+      {traceability.decisions?.length ? (
+        <TraceDecisionList decisions={traceability.decisions.slice(0, 4)} />
+      ) : null}
+    </Card>
+  );
+}
+
+function DailySensorSummary({ sensorSummary }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-[#F8FAFC] p-4">
+      <p className="font-semibold text-[#1C2B21]">Sensor Summary</p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <RangeMetric label="Temperature" summary={sensorSummary.temperature_c} formatter={formatTemperature} />
+        <RangeMetric label="Humidity" summary={sensorSummary.humidity_percent} formatter={formatHumidity} />
+      </div>
+    </div>
+  );
+}
+
+function PeriodSummary({ periods }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-[#F8FAFC] p-4">
+      <p className="font-semibold text-[#1C2B21]">Day/Night Split</p>
+      <div className="mt-4 space-y-3">
+        {periods.map((period) => (
+          <div key={period.period} className="rounded-lg bg-white p-3 ring-1 ring-gray-200">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold capitalize text-[#1C2B21]">{period.period}</p>
+              <p className="text-sm font-semibold text-[#64748B]">{period.sensor_readings || 0} readings</p>
+            </div>
+            <p className="mt-2 text-sm text-[#64748B]">
+              Avg temp {formatTemperature(period.temperature_c?.avg)} · Avg humidity {formatHumidity(period.humidity_percent?.avg)} · {formatMotionPercent(period.motion)}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TraceDecisionList({ decisions }) {
+  return (
+    <div className="mt-5 rounded-lg border border-gray-200 bg-[#F8FAFC] p-4">
+      <p className="font-semibold text-[#1C2B21]">Repeated Rule Findings</p>
+      <div className="mt-4 space-y-3">
+        {decisions.map((decision) => (
+          <div key={`${decision.id}-${decision.period}-${decision.device_id}`} className="rounded-lg bg-white p-3 ring-1 ring-gray-200">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold text-[#1C2B21]">{decision.title || "Decision"}</p>
+              <span className="rounded-full bg-[#F1F5F9] px-3 py-1 text-xs font-bold uppercase text-[#475569]">
+                {decision.severity || "info"} · {decision.occurrences || 1} times
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-[#64748B]">{decision.action || decision.description || "Review this finding."}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LatestAnalysisCard({ analysis }) {
+  return (
+    <Card title="Latest Droppings Analysis" description="Most recent fecal image classification linked to this report.">
+      {!analysis ? (
+        <EmptyState title="No droppings analysis" message="Image classification results will appear after upload." />
+      ) : (
+        <div className="space-y-3 text-sm">
+          <InfoRow label="Status" value={analysis.prediction_status || "N/A"} />
+          <InfoRow label="Disease" value={analysis.disease_type || "No disease detected"} />
+          <InfoRow label="Confidence" value={formatPercent(analysis.confidence)} />
+          <InfoRow label="Captured" value={formatDateTime(analysis.timestamp)} />
+          <InfoRow label="Device" value={analysis.device_id} to={analysis.device_id ? `/devices/${analysis.device_id}` : null} />
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function BriefMetric({ label, value, danger = false }) {
+  return (
+    <div className={`rounded-lg border p-4 ${danger ? "border-red-200 bg-red-50" : "border-gray-200 bg-[#F8FAFC]"}`}>
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#64748B]">{label}</p>
+      <p className={`mt-2 text-lg font-bold ${danger ? "text-red-700" : "text-[#1C2B21]"}`}>{value}</p>
+    </div>
+  );
+}
+
+function TraceMetric({ label, value, danger = false }) {
+  return (
+    <div className={`rounded-lg border p-4 ${danger ? "border-red-200 bg-red-50" : "border-gray-200 bg-[#F8FAFC]"}`}>
+      <p className="text-xs font-bold uppercase tracking-[0.08em] text-[#64748B]">{label}</p>
+      <p className={`mt-2 text-2xl font-bold ${danger ? "text-red-700" : "text-[#1C2B21]"}`}>{value ?? 0}</p>
+    </div>
+  );
+}
+
+function RangeMetric({ label, summary = {}, formatter }) {
+  return (
+    <div className="rounded-lg bg-white p-3 ring-1 ring-gray-200">
+      <p className="text-sm font-semibold text-[#1C2B21]">{label}</p>
+      <p className="mt-2 text-sm text-[#64748B]">Avg {formatter(summary?.avg)}</p>
+      <p className="mt-1 text-xs text-[#64748B]">
+        Min {formatter(summary?.min)} · Max {formatter(summary?.max)}
+      </p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value, to }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-gray-100 pb-3 last:border-0">
+      <dt className="text-[#64748B]">{label}</dt>
+      <dd className="max-w-[65%] truncate text-right font-semibold text-[#1C2B21]" title={value || undefined}>
+        {to && value ? (
+          <Link className="text-[#14532D] hover:underline" to={to}>
+            {value}
+          </Link>
+        ) : (
+          value || "N/A"
+        )}
+      </dd>
     </div>
   );
 }
@@ -324,42 +538,41 @@ function buildBreadcrumbItems(reportType, selectedFarm, selectedCoop, selectedFa
   const items = [
     { label: "Dashboard", to: "/dashboard" },
     { label: "Reports", to: "/reports" },
-    { label: reportType === "coop" ? "Coop Report" : "Farm Report" },
   ];
-
   if (selectedFarm) {
     items.push({ label: selectedFarmOption?.name || selectedFarm, to: `/farms/${selectedFarm}` });
   }
   if (reportType === "coop" && selectedCoop) {
     items.push({ label: selectedCoopOption?.name || selectedCoop, to: `/coops/${selectedCoop}` });
   }
-
+  items.push({ label: reportType === "coop" ? "Coop Report" : "Farm Report" });
   return items;
 }
 
-function buildReportMeta(report, reportType, selectedFarmOption, selectedCoopOption, updatedAt) {
+function buildReportMeta(report, reportType, selectedFarmOption, selectedCoopOption) {
   if (!report) {
     return {
       title: reportType === "coop" ? selectedCoopOption?.name || "Coop Report" : selectedFarmOption?.name || "Farm Report",
-      subtitle: "No report loaded yet.",
+      subtitle: "Report not loaded yet.",
       status: "unknown",
       activeAlerts: 0,
-      healthyDetections: 0,
-      sickDetections: 0,
-      generatedAt: updatedAt,
+      onlineDevices: 0,
+      offlineDevices: 0,
     };
   }
 
+  const devices = report.devices || [];
+  const onlineDevices = report.online_devices ?? devices.filter((device) => device.status === "online").length;
+  const offlineDevices = report.offline_devices ?? devices.filter((device) => device.status === "offline").length;
+
   if (reportType === "coop") {
-    const healthyDetections = countDetections(report.disease_history, "healthy");
-    const sickDetections = countDetections(report.disease_history, "sick");
     return {
       title: report.coop?.name || selectedCoopOption?.name || "Coop Report",
       subtitle: `Parent farm ${selectedFarmOption?.name || report.coop?.farm_id || "N/A"}`,
       status: report.coop?.latest_health_status,
       activeAlerts: report.coop?.active_alerts ?? report.recent_alerts?.length ?? 0,
-      healthyDetections,
-      sickDetections,
+      onlineDevices,
+      offlineDevices,
     };
   }
 
@@ -368,38 +581,36 @@ function buildReportMeta(report, reportType, selectedFarmOption, selectedCoopOpt
     subtitle: report.farm?.location ? `Location: ${report.farm.location}` : "Farm monitoring report",
     status: report.farm?.latest_health_status,
     activeAlerts: report.farm?.active_alerts ?? report.recent_alerts?.length ?? 0,
-    healthyDetections: report.healthy_detections ?? 0,
-    sickDetections: report.sick_detections ?? 0,
+    onlineDevices,
+    offlineDevices,
   };
 }
 
 function buildSummaryCards(report, reportType) {
-  if (reportType === "coop") {
-    const devices = report.devices || [];
-    const healthyDetections = countDetections(report.disease_history, "healthy");
-    const sickDetections = countDetections(report.disease_history, "sick");
-    return [
-      { label: "Devices in Coop", value: report.coop?.number_of_devices ?? devices.length },
-      { label: "Online Devices", value: devices.filter((device) => device.status === "online").length },
-      { label: "Offline Devices", value: devices.filter((device) => device.status === "offline").length, danger: true },
-      { label: "Sensor Readings", value: report.total_readings ?? report.latest_sensor_readings?.length ?? 0 },
-      { label: "Droppings Analyses", value: report.total_droppings_analyses ?? report.disease_history?.length ?? 0 },
-      { label: "Healthy Detections", value: healthyDetections },
-      { label: "Sick Detections", value: sickDetections, danger: sickDetections > 0 },
-      { label: "Active Alerts", value: report.coop?.active_alerts ?? report.recent_alerts?.length ?? 0, danger: (report.recent_alerts?.length ?? 0) > 0 },
-    ];
-  }
+  const trace = report.daily_traceability || {};
+  const devices = report.devices || [];
+  const sickDetections =
+    trace.sick_detections ??
+    report.sick_detections ??
+    countDetections(report.disease_history, "sick");
+  const healthyDetections =
+    trace.healthy_detections ??
+    report.healthy_detections ??
+    countDetections(report.disease_history, "healthy");
+  const onlineDevices = report.online_devices ?? devices.filter((device) => device.status === "online").length;
+  const offlineDevices = report.offline_devices ?? devices.filter((device) => device.status === "offline").length;
 
   return [
-    { label: "Number of Coops", value: report.number_of_coops ?? report.farm?.number_of_coops ?? 0 },
-    { label: "Number of Devices", value: report.number_of_devices ?? report.devices?.length ?? 0 },
-    { label: "Online Devices", value: report.online_devices ?? 0 },
-    { label: "Offline Devices", value: report.offline_devices ?? 0, danger: (report.offline_devices ?? 0) > 0 },
-    { label: "Sensor Readings", value: report.total_readings ?? 0 },
-    { label: "Droppings Analyses", value: report.total_droppings_analyses ?? 0 },
-    { label: "Healthy Detections", value: report.healthy_detections ?? 0 },
-    { label: "Sick Detections", value: report.sick_detections ?? 0, danger: (report.sick_detections ?? 0) > 0 },
-    { label: "Active Alerts", value: report.farm?.active_alerts ?? report.recent_alerts?.length ?? 0, danger: (report.recent_alerts?.length ?? 0) > 0 },
+    {
+      label: reportType === "coop" ? "Devices" : "Coops",
+      value: reportType === "coop" ? report.coop?.number_of_devices ?? devices.length : report.number_of_coops ?? 0,
+      description: reportType === "coop" ? "Registered in this coop" : "Managed under this farm",
+    },
+    { label: "Online Devices", value: onlineDevices, description: "Available for ingestion" },
+    { label: "Offline Devices", value: offlineDevices, description: "Need admin review", danger: offlineDevices > 0 },
+    { label: "Sensor Readings", value: trace.sensor_readings_count ?? report.total_readings ?? 0, description: "For selected day" },
+    { label: "Droppings Analyses", value: trace.droppings_analyses_count ?? report.total_droppings_analyses ?? 0, description: "For selected day" },
+    { label: "Sick Detections", value: sickDetections, description: `${healthyDetections} healthy detections`, danger: sickDetections > 0 },
   ];
 }
 
@@ -431,66 +642,19 @@ function getLatestAnalysis(report, reportType) {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0] || null;
 }
 
-function buildReportImages(report, reportType) {
-  const items = [];
-  const seen = new Set();
-
-  function addImage(image) {
-    if (!image?.imagePath) {
-      return;
-    }
-    const key = `${image.id || ""}:${image.imagePath}:${image.timestamp || ""}:${image.deviceId || ""}`;
-    if (seen.has(key)) {
-      return;
-    }
-    seen.add(key);
-    items.push({ key, ...image });
-  }
-
-  (report.recent_alerts || []).forEach((alert) => {
-    addImage({
-      id: alert.id,
-      imagePath: alert.image_path,
-      diseaseType: alert.disease_type,
-      confidence: alert.confidence,
-      timestamp: alert.timestamp,
-      deviceId: alert.device_id,
-      healthResult: "Sick",
-    });
-  });
-
-  if (reportType === "coop") {
-    (report.disease_history || []).forEach((item) => {
-      addImage({
-        imagePath: item.image_path,
-        diseaseType: item.disease_type,
-        confidence: item.confidence,
-        timestamp: item.timestamp,
-        deviceId: item.device_id,
-        healthResult: item.prediction_status,
-      });
-    });
-  }
-
-  (report.devices || []).forEach((device) => {
-    const prediction = device.latest_prediction;
-    if (prediction) {
-      addImage({
-        imagePath: prediction.image_path,
-        diseaseType: prediction.disease_type,
-        confidence: prediction.confidence,
-        timestamp: prediction.timestamp,
-        deviceId: device.device_id,
-        healthResult: prediction.prediction_status,
-      });
-    }
-  });
-
-  return items
-    .sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime())
-    .slice(0, 9);
-}
-
 function countDetections(items = [], status) {
   return items.filter((item) => item?.prediction_status === status).length;
+}
+
+function formatMotionPercent(motion = {}) {
+  if (motion.detected_percent === null || motion.detected_percent === undefined) {
+    return "No motion data";
+  }
+  return `${formatNumber(motion.detected_percent, 1)}% detected`;
+}
+
+function localDateInputValue() {
+  const value = new Date();
+  value.setMinutes(value.getMinutes() - value.getTimezoneOffset());
+  return value.toISOString().slice(0, 10);
 }

@@ -1,15 +1,29 @@
 import { ArrowRight, AlertTriangle, PlayCircle, BarChart2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
-export default function RecommendedActions({ alerts, overview }) {
+export default function RecommendedActions({ alerts, overview, decisions = [] }) {
   const actions = [];
+
+  const criticalDecision = decisions.find((decision) => decision.severity === "critical" || decision.severity === "warning");
+  if (criticalDecision) {
+    const decisionDeviceId = criticalDecision.deviceId || criticalDecision.device_id;
+    actions.push({
+      id: "rule-decision",
+      label: criticalDecision.title || "Review Rule Decision",
+      description: criticalDecision.action || criticalDecision.description || "A rule-based decision needs review.",
+      icon: AlertTriangle,
+      to: decisionDeviceId ? `/devices/${decisionDeviceId}` : "/reports",
+      color: criticalDecision.severity === "critical" ? "text-red-600" : "text-amber-600",
+      bg: criticalDecision.severity === "critical" ? "bg-red-50" : "bg-amber-50",
+    });
+  }
 
   // Logic to determine recommended actions
   if (alerts && alerts.length > 0) {
     actions.push({
       id: "review-alerts",
-      label: "Review Health Alerts",
-      description: `${alerts.length} active alerts need your attention.`,
+      label: "Review Image Alerts",
+      description: `${alerts.length} droppings image alert${alerts.length === 1 ? "" : "s"} need review.`,
       icon: AlertTriangle,
       to: "/alerts",
       color: "text-amber-600",

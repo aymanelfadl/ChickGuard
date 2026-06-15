@@ -21,6 +21,7 @@ class SensorDataPayload(BaseModel):
 
     temperature_c: Optional[float] = None
     humidity_percent: Optional[float] = None
+    motion: Optional[int] = Field(default=None, ge=0, le=1)
     weight_kg: Optional[float] = None
 
 
@@ -76,6 +77,7 @@ class IoTReadingOut(BaseModel):
     timestamp: datetime
     temperature_c: Optional[float]
     humidity_percent: Optional[float]
+    motion: Optional[int]
     weight_kg: Optional[float]
     battery_percent: Optional[float]
     wifi_rssi: Optional[int]
@@ -97,6 +99,7 @@ class ImageReadingOut(BaseModel):
     timestamp: datetime
     temperature_c: Optional[float]
     humidity_percent: Optional[float]
+    motion: Optional[int]
     weight_kg: Optional[float]
     battery_percent: Optional[float]
     wifi_rssi: Optional[int]
@@ -172,6 +175,7 @@ class DeviceOut(BaseModel):
     stream_url: Optional[str]
     location_label: Optional[str]
     description: Optional[str]
+    api_key_configured: bool
     is_active: bool
     status: str
     last_seen_at: Optional[str]
@@ -314,6 +318,7 @@ class DashboardOverview(BaseModel):
 class DashboardLatestSensor(BaseModel):
     temperature_c: Optional[float]
     humidity_percent: Optional[float]
+    motion: Optional[int]
     weight_kg: Optional[float]
     timestamp: Optional[str]
 
@@ -332,6 +337,7 @@ class DashboardLatestStatus(BaseModel):
     coop_id: Optional[str]
     latest_sensor: Optional[DashboardLatestSensor]
     latest_prediction: Optional[DashboardLatestPrediction]
+    decisions: list[dict] = Field(default_factory=list)
 
 
 class DashboardHealthHistoryItem(BaseModel):
@@ -341,6 +347,7 @@ class DashboardHealthHistoryItem(BaseModel):
     coop_id: str
     temperature_c: Optional[float]
     humidity_percent: Optional[float]
+    motion: Optional[int]
     weight_kg: Optional[float]
     prediction_status: Optional[str]
     disease_type: Optional[str]

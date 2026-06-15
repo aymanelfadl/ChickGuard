@@ -39,7 +39,7 @@ function AppRoutes({ user, onLogout }) {
         <Route path="/dashboard" element={<DashboardPage realtime={realtime} />} />
         <Route path="/farms" element={<FarmsPage user={user} />} />
         <Route path="/farms/:farmId" element={<FarmDetailsPage realtime={realtime} user={user} />} />
-        <Route path="/coops/:coopId" element={<CoopDetailsPage realtime={realtime} />} />
+        <Route path="/coops/:coopId" element={<CoopDetailsPage realtime={realtime} user={user} />} />
         <Route path="/devices" element={<DevicesPage realtime={realtime} user={user} />} />
         <Route path="/devices/:deviceId" element={<DeviceDetailsPage realtime={realtime} user={user} />} />
         <Route path="/gallery" element={<ImageGalleryPage realtime={realtime} />} />

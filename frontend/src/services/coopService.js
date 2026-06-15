@@ -21,3 +21,9 @@ export function createCoop(farmId, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function deleteCoop(coopId) {
+  return fetchJson(COOP_ENDPOINTS.coop(coopId), {
+    method: "DELETE",
+  });
+}

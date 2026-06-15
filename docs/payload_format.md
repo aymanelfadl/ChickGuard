@@ -22,7 +22,7 @@ shape:
   "data": {
     "temperature_c": 31.5,
     "humidity_percent": 68,
-    "weight_kg": 1.25
+    "motion": 1
   },
   "metadata": {
     "battery_percent": 82,

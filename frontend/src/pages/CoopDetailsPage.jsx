@@ -13,11 +13,11 @@ import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
-import { fetchCoop, fetchCoopDevices } from "../services/coopService.js";
+import { deleteCoop, fetchCoop, fetchCoopDevices } from "../services/coopService.js";
 import { fetchCoopReport } from "../services/reportService.js";
-import { formatDateTime, formatHumidity, formatTemperature, formatWeight } from "../utils/formatters.js";
+import { formatDateTime, formatHumidity, formatMotion, formatTemperature } from "../utils/formatters.js";
 
-export default function CoopDetailsPage({ realtime }) {
+export default function CoopDetailsPage({ realtime, user }) {
   const { coopId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,10 +26,12 @@ export default function CoopDetailsPage({ realtime }) {
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const galleryCoopId = coop?.name || coopId;
   const recentImages = useImageGallery({ coop_id: galleryCoopId, limit: 6, offset: 0 });
+  const isAdmin = user?.role === "admin";
 
   const loadCoop = useCallback(async ({ showLoading = true } = {}) => {
     if (showLoading) {
@@ -75,6 +77,23 @@ export default function CoopDetailsPage({ realtime }) {
     }
   }, [location.pathname, location.state, navigate]);
 
+  async function handleDeleteCoop() {
+    if (!coop || !window.confirm(`Delete coop "${coop.name || coopId}"? This only works when the coop has no devices or readings.`)) {
+      return;
+    }
+
+    setDeleteError("");
+    setSuccessMessage("");
+    try {
+      await deleteCoop(coop.id || coopId);
+      navigate(farmId ? `/farms/${farmId}` : "/farms", {
+        state: { successMessage: `${coop.name || "Coop"} deleted.` },
+      });
+    } catch (deleteCoopError) {
+      setDeleteError(deleteCoopError.message || "Unable to delete coop.");
+    }
+  }
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -108,13 +127,13 @@ export default function CoopDetailsPage({ realtime }) {
           <div className="min-w-0">
             <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21] truncate">{coopName}</h1>
             <p className="mt-1 text-sm text-[#6B7280]">
-              Part of {farmName} · {devices.length} cameras · {activeAlerts} active alerts
+              Part of {farmName} · {devices.length} devices · {activeAlerts} image alerts
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {firstDeviceId ? (
               <Link className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors" to={`/devices/${firstDeviceId}`}>
-                Open Camera
+                Open Device
               </Link>
             ) : null}
             <Link className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-[#1C2B21] shadow-apple-sm hover:bg-gray-50 transition-colors" to={`/gallery?coop_id=${encodeURIComponent(galleryCoopId)}`}>
@@ -123,6 +142,15 @@ export default function CoopDetailsPage({ realtime }) {
             <Link className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm hover:bg-green-800 transition-colors" to={`/reports?type=coop&farm_id=${encodeURIComponent(farmId || "")}&coop_id=${encodeURIComponent(coop?.id || coopId)}`}>
               View Report
             </Link>
+            {isAdmin ? (
+              <button
+                type="button"
+                onClick={handleDeleteCoop}
+                className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-apple-sm hover:bg-red-50 transition-colors"
+              >
+                Delete Coop
+              </button>
+            ) : null}
           </div>
         </div>
         <HierarchyContext
@@ -145,6 +173,11 @@ export default function CoopDetailsPage({ realtime }) {
           {successMessage}
         </p>
       ) : null}
+      {deleteError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {deleteError}
+        </p>
+      ) : null}
       <Card
         title={coop?.name || "Coop Overview"}
         description={coop?.description || "Coop operational status and infrastructure."}
@@ -152,17 +185,17 @@ export default function CoopDetailsPage({ realtime }) {
         <div className="grid gap-4 sm:grid-cols-3">
           <Metric label="Capacity" value={coop?.capacity ?? "Not set"} />
           <Metric label="Devices" value={coop?.number_of_devices} />
-          <Metric label="Active Alerts" value={coop?.active_alerts} danger={coop?.active_alerts > 0} />
+          <Metric label="Image Alerts" value={coop?.active_alerts} danger={coop?.active_alerts > 0} />
         </div>
       </Card>
 
       <section className="space-y-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#1C2B21]">Camera Devices</h2>
-          <p className="text-sm text-[#6B7280]">Device cards include a live stream placeholder for future ESP32-CAM/IP camera integration.</p>
+          <h2 className="text-xl font-bold tracking-tight text-[#1C2B21]">Devices</h2>
+          <p className="text-sm text-[#6B7280]">Registered ESP32 sensor devices and camera devices for this coop.</p>
         </div>
         {!devices.length ? (
-          <EmptyState title="No camera devices" message="Registered devices for this coop will appear here." />
+          <EmptyState title="No devices" message="Registered devices for this coop will appear here." />
         ) : (
           <div className="grid gap-6 lg:grid-cols-2">
             {devices.map((device) => (
@@ -196,7 +229,7 @@ export default function CoopDetailsPage({ realtime }) {
             <dl className="space-y-3 text-sm">
               <Row label="Temperature" value={formatTemperature(latestSensor.temperature_c)} />
               <Row label="Humidity" value={formatHumidity(latestSensor.humidity_percent)} />
-              <Row label="Weight" value={formatWeight(latestSensor.weight_kg)} />
+              <Row label="Motion" value={formatMotion(latestSensor.motion)} />
               <Row label="Captured" value={formatDateTime(latestSensor.timestamp)} />
             </dl>
           ) : (
@@ -213,7 +246,7 @@ export default function CoopDetailsPage({ realtime }) {
         />
       </Card>
 
-      <Card title="Health Alerts" description="Sick detections from droppings analysis for this coop.">
+      <Card title="Droppings Image Alerts" description="Image-based disease alerts from droppings analysis for this coop.">
         {report?.recent_alerts?.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {report.recent_alerts.map((alert) => (
@@ -225,7 +258,7 @@ export default function CoopDetailsPage({ realtime }) {
             ))}
           </div>
         ) : (
-          <EmptyState title="No active health alerts" message="Sick detections will appear here when droppings analysis flags a case." />
+          <EmptyState title="No droppings image alerts" message="Sick detections will appear here when droppings analysis flags a case." />
         )}
       </Card>
     </div>

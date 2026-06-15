@@ -3,11 +3,11 @@ import { formatDateTime } from "../../utils/formatters.js";
 
 export default function ReportHeader({ reportType, title, subtitle, status, generatedAt, levelLabel }) {
   return (
-    <section className="rounded-xl border border-gray-100 bg-[#F9FAF9] p-6 shadow-apple-sm">
+    <section className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full bg-[#15803D]/10 px-3 py-1 text-xs font-semibold text-[#15803D]">
+            <span className="rounded-full bg-[#DCFCE7] px-3 py-1 text-xs font-semibold text-[#14532D]">
               {levelLabel || `${reportType} Level`}
             </span>
             <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-[#6B7280] ring-1 ring-gray-200">

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 import Card from "../common/Card.jsx";
 import StatusBadge from "../dashboard/StatusBadge.jsx";
-import { formatDateTime, formatPercent } from "../../utils/formatters.js";
+import { formatDateTime, formatHumidity, formatMotion, formatPercent, formatTemperature } from "../../utils/formatters.js";
 
 function DeviceMetric({ label, value }) {
   return (
@@ -13,19 +13,23 @@ function DeviceMetric({ label, value }) {
   );
 }
 
-export default function DeviceCard({ device, canEdit = false, onEdit }) {
+export default function DeviceCard({ device, canEdit = false, onEdit, onDelete }) {
   const prediction = device.latest_prediction || device.latestPrediction;
+  const latestSensor = device.latest_sensor || device.latestSensor;
   const isActive = device.is_active ?? device.isActive;
   const status = device.status || (isActive ? "unknown" : "offline");
   const lastSeenAt = device.last_seen_at || device.lastSeenAt;
   const lastEventType = device.last_event_type || device.lastEventType;
   const deviceId = device.device_id || device.deviceId;
   const streamUrl = device.stream_url || device.streamUrl;
+  const deviceType = device.device_type || device.deviceType || "esp32-cam";
+  const isSensorDevice = deviceType === "esp32";
+  const roleLabel = isSensorDevice ? "Sensor telemetry" : device.camera_type || device.cameraType || "Camera";
 
   return (
     <Card
       title={device.name || deviceId}
-      description={device.device_type || device.deviceType || "ESP32-CAM"}
+      description={isSensorDevice ? "ESP32 Sensor Device" : deviceType}
       action={
         <div className="flex flex-wrap justify-end gap-2">
           <StatusBadge status={status} />
@@ -43,12 +47,27 @@ export default function DeviceCard({ device, canEdit = false, onEdit }) {
               Edit
             </button>
           ) : null}
+          {canEdit && onDelete ? (
+            <button
+              type="button"
+              className="rounded-xl border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-50"
+              onClick={onDelete}
+            >
+              Delete
+            </button>
+          ) : null}
         </div>
       }
     >
       <div className="space-y-4">
         <div className="rounded-xl border border-dashed border-gray-200 bg-[#F9FAF9] p-4 text-sm text-[#6B7280]">
-          {streamUrl ? (
+          {isSensorDevice ? (
+            <span>
+              Sensor telemetry device
+              {lastEventType ? ` - last event ${lastEventType}` : ""}
+              {lastSeenAt ? ` - seen ${formatDateTime(lastSeenAt)}` : ""}
+            </span>
+          ) : streamUrl ? (
             <span>
               Stream URL configured:{" "}
               <a className="font-semibold text-[#15803D] hover:underline" href={streamUrl} target="_blank" rel="noreferrer">
@@ -64,12 +83,22 @@ export default function DeviceCard({ device, canEdit = false, onEdit }) {
           <DeviceMetric label="Status" value={status === "online" ? "Online" : status === "offline" ? "Offline" : "Unknown"} />
           <DeviceMetric label="Farm" value={device.farm_id || device.farmId || "N/A"} />
           <DeviceMetric label="Coop" value={device.coop_id || device.coopId || "N/A"} />
-          <DeviceMetric label="Camera Type" value={device.camera_type || device.cameraType || "N/A"} />
+          <DeviceMetric label="Device Role" value={roleLabel} />
           <DeviceMetric label="Location" value={device.location_label || device.locationLabel || "N/A"} />
-          <DeviceMetric label="Latest Analysis" value={prediction?.disease_type || prediction?.diseaseType || prediction?.prediction_status || "None"} />
-          <DeviceMetric label="Confidence" value={formatPercent(prediction?.confidence)} />
+          {isSensorDevice ? (
+            <>
+              <DeviceMetric label="Temperature" value={formatTemperature(latestSensor?.temperature_c)} />
+              <DeviceMetric label="Humidity" value={formatHumidity(latestSensor?.humidity_percent)} />
+              <DeviceMetric label="Motion" value={formatMotion(latestSensor?.motion)} />
+            </>
+          ) : (
+            <>
+              <DeviceMetric label="Latest Analysis" value={prediction?.disease_type || prediction?.diseaseType || prediction?.prediction_status || "None"} />
+              <DeviceMetric label="Confidence" value={formatPercent(prediction?.confidence)} />
+            </>
+          )}
         </div>
-        {prediction?.image_path || prediction?.imagePath ? (
+        {!isSensorDevice && (prediction?.image_path || prediction?.imagePath) ? (
           <p
             className="truncate text-xs font-medium text-[#6B7280]"
             title={prediction.image_path || prediction.imagePath}
@@ -77,8 +106,11 @@ export default function DeviceCard({ device, canEdit = false, onEdit }) {
             Droppings image: {prediction.image_path || prediction.imagePath}
           </p>
         ) : null}
-        {prediction?.timestamp ? (
+        {!isSensorDevice && prediction?.timestamp ? (
           <p className="text-xs font-medium text-[#6B7280]">Captured {formatDateTime(prediction.timestamp)}</p>
+        ) : null}
+        {isSensorDevice && latestSensor?.timestamp ? (
+          <p className="text-xs font-medium text-[#6B7280]">Latest sensor reading {formatDateTime(latestSensor.timestamp)}</p>
         ) : null}
       </div>
     </Card>

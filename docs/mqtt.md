@@ -58,7 +58,7 @@ Because MQTT has no HTTP headers, the device API key is included in
   "data": {
     "temperature_c": 31.5,
     "humidity_percent": 68,
-    "weight_kg": 1.25
+    "motion": 1
   },
   "metadata": {
     "battery_percent": 82,
@@ -96,3 +96,31 @@ poultry/{farm_id}/{coop_id}/readings
 
 The backend remains independent of whether the sender is the simulator or real
 firmware as long as the payload contract and device registry credentials match.
+
+## Cloud Broker for Wokwi
+
+Wokwi cannot publish to the Docker Compose service name `mosquitto`. For a Wokwi
+ESP32 simulation, point both the sketch and backend at the same reachable MQTT
+broker, such as HiveMQ Cloud.
+
+The backend supports these environment variables:
+
+```text
+MQTT_BROKER_HOST=your-cluster.s1.eu.hivemq.cloud
+MQTT_BROKER_PORT=8883
+MQTT_USERNAME=your-mqtt-username
+MQTT_PASSWORD=your-mqtt-password
+MQTT_USE_TLS=true
+MQTT_TOPIC_READINGS_SUBSCRIPTION=poultry/+/+/readings
+```
+
+The ESP32 sketch in `simulator/esp32_wokwi_mqtt.ino` must publish to a matching
+topic, for example:
+
+```text
+poultry/farm-01/coop-01/readings
+```
+
+The backend authenticates the device from `metadata.api_key` in the JSON
+payload, not from the MQTT username/password. The MQTT credentials only connect
+to the broker.

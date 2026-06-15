@@ -1,13 +1,13 @@
-import { Camera, Droplets, MapPin, Scale, ShieldCheck, Thermometer } from "lucide-react";
+import { Activity, Camera, Droplets, MapPin, ShieldCheck, Thermometer } from "lucide-react";
 
 import Card from "../common/Card.jsx";
 import EmptyState from "../common/EmptyState.jsx";
 import {
   formatDateTime,
   formatHumidity,
+  formatMotion,
   formatPercent,
   formatTemperature,
-  formatWeight,
 } from "../../utils/formatters.js";
 import StatusBadge from "./StatusBadge.jsx";
 
@@ -78,7 +78,7 @@ export default function LatestStatus({ status }) {
                 label="Humidity"
                 value={formatHumidity(sensor.humidityPercent)}
               />
-              <SensorMetric icon={Scale} label="Weight" value={formatWeight(sensor.weightKg)} />
+              <SensorMetric icon={Activity} label="Motion" value={formatMotion(sensor.motion)} />
             </div>
             <dl className="rounded-xl border border-gray-100 px-4">
               <ValueRow label="Last Reading" value={formatDateTime(sensor.timestamp)} />
@@ -87,7 +87,7 @@ export default function LatestStatus({ status }) {
         ) : (
           <EmptyState
             title="No sensor reading yet"
-            message="Temperature, humidity, and weight data will appear after the first device reading."
+            message="Temperature, humidity, and motion data will appear after the first device reading."
           />
         )}
       </Card>

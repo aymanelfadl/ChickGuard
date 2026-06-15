@@ -40,6 +40,15 @@ def ensure_database_schema() -> None:
             with engine.begin() as connection:
                 connection.execute(text("ALTER TABLE image_readings ADD COLUMN raw_label VARCHAR(100)"))
 
+    for table_name in ("iot_readings", "image_readings"):
+        if table_name not in table_names:
+            continue
+
+        columns = {column["name"] for column in inspector.get_columns(table_name)}
+        if "motion" not in columns:
+            with engine.begin() as connection:
+                connection.execute(text(f"ALTER TABLE {table_name} ADD COLUMN motion INTEGER"))
+
     for table_name in ("devices", "camera_devices"):
         if table_name not in table_names:
             continue

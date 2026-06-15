@@ -2,7 +2,7 @@
 
 ## System Overview
 
-This platform monitors poultry health through **fecal image classification** (AI-powered droppings analysis) and **environmental sensor telemetry** (temperature, humidity, ammonia, weight). It consists of a **FastAPI backend**, a **React 19 (Vite) frontend dashboard**, a **Mosquitto MQTT broker** for device telemetry, a **SQLite database**, and a **Keras CNN AI model** for image classification.
+This platform monitors poultry health through **fecal image classification** (AI-powered droppings analysis) and **environmental sensor telemetry** (temperature, humidity, motion, and future optional sensors). It consists of a **FastAPI backend**, a **React 19 (Vite) frontend dashboard**, a **Mosquitto MQTT broker** for device telemetry, a **SQLite database**, and a **Keras CNN AI model** for image classification.
 
 ```mermaid
 graph TB
@@ -527,7 +527,7 @@ A Python script (~347 lines) that simulates an ESP32/ESP32-CAM IoT device:
 | `heartbeat` | HTTP POST JSON | `http://localhost:8000/api/iot/heartbeat` |
 
 - **Device identity**: `esp32-sim-01` with API key `dev-secret-key`
-- **Sensor data**: temperature (28–36°C), humidity (55–85%), weight (0.8–2.6 kg), battery, wifi_rssi
+- **Sensor data**: temperature (28–36°C), humidity (55–85%), PIR motion (0/1), battery, wifi_rssi
 - **Payload**: Versioned (`schema_version: 1.0`) with `device`, `location`, `timestamp`, `data`, `metadata` fields
 - **Image mode**: Randomly picks from 6 sample droppings images in `simulator/sample_images/`
 - **Loop interval**: 5 seconds (or `--once` for single shot)

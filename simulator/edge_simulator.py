@@ -60,7 +60,7 @@ def generate_sensor_data() -> dict:
     return {
         "temperature_c": round(random.uniform(28.0, 36.0), 1),
         "humidity_percent": random.randint(55, 85),
-        "weight_kg": round(random.uniform(0.8, 2.6), 2),
+        "motion": random.randint(0, 1),
     }
 
 

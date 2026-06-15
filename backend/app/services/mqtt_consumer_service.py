@@ -1,5 +1,6 @@
 import json
 import logging
+import ssl
 
 import paho.mqtt.client as mqtt
 from fastapi import HTTPException
@@ -7,7 +8,16 @@ from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
 from app import models
-from app.config import MQTT_BROKER_HOST, MQTT_BROKER_PORT, MQTT_TOPIC_READINGS_SUBSCRIPTION
+from app.config import (
+    MQTT_BROKER_HOST,
+    MQTT_BROKER_PORT,
+    MQTT_CLIENT_ID,
+    MQTT_PASSWORD,
+    MQTT_TLS_INSECURE,
+    MQTT_TOPIC_READINGS_SUBSCRIPTION,
+    MQTT_USERNAME,
+    MQTT_USE_TLS,
+)
 from app.database import SessionLocal
 from app.schemas import IoTReadingCreate
 from app.services.device_auth_service import get_authenticated_device, validate_payload_matches_device
@@ -31,21 +41,28 @@ def start_mqtt_consumer() -> None:
     if _mqtt_client is not None:
         return
 
-    client = mqtt.Client(client_id="poultry-backend-mqtt-consumer")
+    client = mqtt.Client(client_id=MQTT_CLIENT_ID)
     client.on_connect = _on_connect
     client.on_message = _on_message
     client.on_disconnect = _on_disconnect
     client.reconnect_delay_set(min_delay=1, max_delay=30)
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    if MQTT_USE_TLS:
+        client.tls_set(cert_reqs=ssl.CERT_REQUIRED)
+        client.tls_insecure_set(MQTT_TLS_INSECURE)
 
     try:
         client.connect_async(MQTT_BROKER_HOST, MQTT_BROKER_PORT, keepalive=60)
         client.loop_start()
         _mqtt_client = client
         logger.info(
-            "MQTT consumer starting: broker=%s:%s topic=%s",
+            "MQTT consumer starting: broker=%s:%s topic=%s tls=%s username_configured=%s",
             MQTT_BROKER_HOST,
             MQTT_BROKER_PORT,
             MQTT_TOPIC_READINGS_SUBSCRIPTION,
+            MQTT_USE_TLS,
+            bool(MQTT_USERNAME),
         )
     except Exception:
         logger.exception("MQTT consumer failed to start")
@@ -142,6 +159,7 @@ def _store_mqtt_reading(db, payload: IoTReadingCreate, device: models.Device) ->
         timestamp=payload.timestamp,
         temperature_c=payload.data.temperature_c,
         humidity_percent=payload.data.humidity_percent,
+        motion=payload.data.motion,
         weight_kg=payload.data.weight_kg,
         battery_percent=metadata.battery_percent if metadata else None,
         wifi_rssi=metadata.wifi_rssi if metadata else None,

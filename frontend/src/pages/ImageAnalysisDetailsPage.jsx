@@ -9,7 +9,7 @@ import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageAnalysisDetails } from "../hooks/useImageGallery.js";
 import { authenticatedImageUrl } from "../services/imageGalleryService.js";
-import { formatDateTime, formatHumidity, formatPercent, formatTemperature, formatWeight } from "../utils/formatters.js";
+import { formatDateTime, formatHumidity, formatMotion, formatPercent, formatTemperature } from "../utils/formatters.js";
 
 export default function ImageAnalysisDetailsPage() {
   const { imageReadingId } = useParams();
@@ -114,7 +114,7 @@ export default function ImageAnalysisDetailsPage() {
               <div className="space-y-3 text-sm">
                 <Row label="Temperature" value={formatTemperature(sensor.temperature_c)} />
                 <Row label="Humidity" value={formatHumidity(sensor.humidity_percent)} />
-                <Row label="Weight" value={formatWeight(sensor.weight_kg)} />
+                <Row label="Motion" value={formatMotion(sensor.motion)} />
                 <Row label="Captured" value={formatDateTime(sensor.timestamp)} />
               </div>
             ) : (
@@ -124,7 +124,7 @@ export default function ImageAnalysisDetailsPage() {
         </div>
       </div>
 
-      <Card title="Related Alerts" description="Recent sick detections for this farm, coop, and camera.">
+      <Card title="Related Droppings Image Alerts" description="Recent image-based sick detections for this farm, coop, and camera.">
         {analysis.related_alerts?.length ? (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {analysis.related_alerts.map((alert) => (
@@ -136,7 +136,7 @@ export default function ImageAnalysisDetailsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-[#6B7280]">No related health alerts.</p>
+          <p className="text-sm text-[#6B7280]">No related droppings image alerts.</p>
         )}
       </Card>
     </section>

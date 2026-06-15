@@ -9,6 +9,7 @@ from app.config import DEFAULT_LIMIT, MAX_LIMIT
 from app.database import get_db
 from app.schemas import CameraDeviceOut, CoopCreate, CoopOut, CoopSummary, FarmCreate, FarmOut, FarmSummary
 from app.services.auth_service import require_roles
+from app.services.decision_service import build_daily_traceability, evaluate_health_decisions
 from app.services.farm_management_service import (
     alert_dict,
     camera_device_dict,
@@ -125,6 +126,45 @@ def camera_device_out(db: Session, camera: models.CameraDevice) -> CameraDeviceO
     return CameraDeviceOut(**camera_device_dict(camera, latest_analysis))
 
 
+def build_report_traceability(db: Session, **kwargs: object) -> dict:
+    try:
+        return build_daily_traceability(db, **kwargs)
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="date must use YYYY-MM-DD format",
+        ) from error
+
+
+def farm_dependency_count(db: Session, farm: models.Farm) -> int:
+    farm_keys = farm_lookup_keys(farm)
+    return (
+        db.query(models.Coop).filter(models.Coop.farm_id == farm.id).count()
+        + db.query(models.CameraDevice).filter(models.CameraDevice.farm_id == farm.id).count()
+        + db.query(models.Device).filter(models.Device.farm_id.in_(farm_keys)).count()
+        + db.query(models.IoTReading).filter(models.IoTReading.farm_id.in_(farm_keys)).count()
+        + db.query(models.ImageReading).filter(models.ImageReading.farm_id.in_(farm_keys)).count()
+    )
+
+
+def coop_dependency_count(db: Session, coop: models.Coop) -> int:
+    farm = db.query(models.Farm).filter(models.Farm.id == coop.farm_id).first()
+    farm_keys = farm_lookup_keys(farm) if farm else {str(coop.farm_id)}
+    coop_keys = coop_lookup_keys(coop)
+    return (
+        db.query(models.CameraDevice).filter(models.CameraDevice.coop_id == coop.id).count()
+        + db.query(models.Device)
+        .filter(models.Device.farm_id.in_(farm_keys), models.Device.coop_id.in_(coop_keys))
+        .count()
+        + db.query(models.IoTReading)
+        .filter(models.IoTReading.farm_id.in_(farm_keys), models.IoTReading.coop_id.in_(coop_keys))
+        .count()
+        + db.query(models.ImageReading)
+        .filter(models.ImageReading.farm_id.in_(farm_keys), models.ImageReading.coop_id.in_(coop_keys))
+        .count()
+    )
+
+
 @router.get("/api/farms", response_model=List[FarmSummary], dependencies=[manager_user])
 def list_farms(db: Session = Depends(get_db)) -> list[FarmSummary]:
     sync_hierarchy_from_registered_devices(db)
@@ -176,6 +216,20 @@ def get_farm(farm_id: str, db: Session = Depends(get_db)) -> FarmSummary:
     return farm_summary(db, get_farm_or_404(db, farm_id))
 
 
+@router.delete("/api/farms/{farm_id}", dependencies=[admin_user])
+def delete_farm(farm_id: str, db: Session = Depends(get_db)) -> dict:
+    farm = get_farm_or_404(db, farm_id)
+    if farm_dependency_count(db, farm):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Farm cannot be deleted while it has coops, devices, or readings. Delete or move those records first.",
+        )
+
+    db.delete(farm)
+    db.commit()
+    return {"status": "success", "message": "Farm deleted", "farm_id": farm_id}
+
+
 @router.get("/api/farms/{farm_id}/coops", response_model=List[CoopSummary], dependencies=[manager_user])
 def list_farm_coops(farm_id: str, db: Session = Depends(get_db)) -> list[CoopSummary]:
     farm = get_farm_or_404(db, farm_id)
@@ -203,6 +257,20 @@ def get_coop(coop_id: str, db: Session = Depends(get_db)) -> CoopSummary:
     return coop_summary(db, get_coop_or_404(db, coop_id))
 
 
+@router.delete("/api/coops/{coop_id}", dependencies=[admin_user])
+def delete_coop(coop_id: str, db: Session = Depends(get_db)) -> dict:
+    coop = get_coop_or_404(db, coop_id)
+    if coop_dependency_count(db, coop):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Coop cannot be deleted while it has devices or readings. Delete or move those records first.",
+        )
+
+    db.delete(coop)
+    db.commit()
+    return {"status": "success", "message": "Coop deleted", "coop_id": coop_id}
+
+
 @router.get("/api/coops/{coop_id}/devices", response_model=List[CameraDeviceOut], dependencies=[manager_user])
 def list_coop_devices(coop_id: str, db: Session = Depends(get_db)) -> list[CameraDeviceOut]:
     coop = get_coop_or_404(db, coop_id)
@@ -219,6 +287,7 @@ def list_coop_devices(coop_id: str, db: Session = Depends(get_db)) -> list[Camer
 def get_farm_report(
     farm_id: str,
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    traceability_date: str | None = Query(default=None, alias="date"),
     db: Session = Depends(get_db),
 ) -> dict:
     farm = get_farm_or_404(db, farm_id)
@@ -236,6 +305,13 @@ def get_farm_report(
         .order_by(models.IoTReading.timestamp.desc(), models.IoTReading.created_at.desc())
         .limit(limit)
         .all()
+    )
+    latest_sensor = latest_sensors[0] if latest_sensors else None
+    latest_analysis = (
+        db.query(models.ImageReading)
+        .filter(models.ImageReading.farm_id.in_(keys), models.ImageReading.prediction_status.is_not(None))
+        .order_by(models.ImageReading.timestamp.desc(), models.ImageReading.created_at.desc())
+        .first()
     )
     cameras = (
         db.query(models.CameraDevice)
@@ -256,6 +332,12 @@ def get_farm_report(
         "healthy_detections": db.query(models.ImageReading).filter(models.ImageReading.farm_id.in_(keys), models.ImageReading.prediction_status == "healthy").count(),
         "sick_detections": db.query(models.ImageReading).filter(models.ImageReading.farm_id.in_(keys), models.ImageReading.prediction_status == "sick").count(),
         "devices": device_items,
+        "decisions": evaluate_health_decisions(latest_sensor, latest_analysis),
+        "daily_traceability": build_report_traceability(
+            db,
+            traceability_date=traceability_date,
+            farm_keys=keys,
+        ),
         "recent_alerts": [alert_dict(alert) for alert in recent_alerts],
         "latest_sensor_readings": [latest_sensor_dict(reading) | {"device_id": reading.device_id, "coop_id": reading.coop_id} for reading in latest_sensors],
     }
@@ -265,6 +347,7 @@ def get_farm_report(
 def get_coop_report(
     coop_id: str,
     limit: int = Query(default=DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
+    traceability_date: str | None = Query(default=None, alias="date"),
     db: Session = Depends(get_db),
 ) -> dict:
     coop = get_coop_or_404(db, coop_id)
@@ -288,6 +371,7 @@ def get_coop_report(
         .limit(limit)
         .all()
     )
+    latest_sensor = latest_sensors[0] if latest_sensors else None
     disease_history = (
         db.query(models.ImageReading)
         .filter(
@@ -310,6 +394,13 @@ def get_coop_report(
     return {
         "coop": coop_summary(db, coop).model_dump(mode="json"),
         "devices": [camera_device_out(db, camera).model_dump(mode="json") for camera in cameras],
+        "decisions": evaluate_health_decisions(latest_sensor, latest_analysis),
+        "daily_traceability": build_report_traceability(
+            db,
+            traceability_date=traceability_date,
+            farm_keys=farm_keys,
+            coop_keys=coop_keys,
+        ),
         "latest_sensor_readings": [latest_sensor_dict(reading) | {"device_id": reading.device_id} for reading in latest_sensors],
         "latest_droppings_analysis": latest_prediction_dict(latest_analysis),
         "disease_history": [latest_prediction_dict(item) | {"device_id": item.device_id} for item in disease_history],

@@ -27,12 +27,12 @@ export default function SettingsPage({ user }) {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <AdminShortcut
             title="Add Farm"
-            description="Create a farm, then add coops and cameras/devices."
+            description="Create a farm, then add coops and devices."
             to="/farms"
           />
           <AdminShortcut
             title="Register Device"
-            description="Register an ESP32/ESP32-CAM device with an API key."
+            description="Register an ESP32 sensor or ESP32-CAM device with an API key."
             to="/devices"
           />
           <AdminShortcut

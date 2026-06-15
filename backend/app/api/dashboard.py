@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -17,10 +17,34 @@ from app.schemas import (
     DashboardOverview,
 )
 from app.services.auth_service import get_current_user
+from app.services.decision_service import build_daily_traceability, evaluate_health_decisions
+from app.services.farm_management_service import coop_lookup_keys, farm_lookup_keys
 
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 require_dashboard_user = Depends(get_current_user)
+
+
+def resolve_farm_keys(db: Session, farm_id: str | None) -> set[str] | None:
+    if not farm_id:
+        return None
+    farm = None
+    if farm_id.isdigit():
+        farm = db.query(models.Farm).filter(models.Farm.id == int(farm_id)).first()
+    if not farm:
+        farm = db.query(models.Farm).filter(models.Farm.name == farm_id).first()
+    return farm_lookup_keys(farm) if farm else {farm_id}
+
+
+def resolve_coop_keys(db: Session, coop_id: str | None) -> set[str] | None:
+    if not coop_id:
+        return None
+    coop = None
+    if coop_id.isdigit():
+        coop = db.query(models.Coop).filter(models.Coop.id == int(coop_id)).first()
+    if not coop:
+        coop = db.query(models.Coop).filter(models.Coop.name == coop_id).first()
+    return coop_lookup_keys(coop) if coop else {coop_id}
 
 
 def format_utc(value: datetime | None) -> str | None:
@@ -114,6 +138,7 @@ def get_latest_status(db: Session = Depends(get_db)) -> DashboardLatestStatus:
             DashboardLatestSensor(
                 temperature_c=latest_sensor.temperature_c,
                 humidity_percent=latest_sensor.humidity_percent,
+                motion=latest_sensor.motion,
                 weight_kg=latest_sensor.weight_kg,
                 timestamp=format_utc(latest_sensor.timestamp),
             )
@@ -131,7 +156,31 @@ def get_latest_status(db: Session = Depends(get_db)) -> DashboardLatestStatus:
             if latest_prediction
             else None
         ),
+        decisions=evaluate_health_decisions(latest_sensor, latest_prediction),
     )
+
+
+@router.get("/daily-traceability", dependencies=[require_dashboard_user])
+def get_daily_traceability(
+    traceability_date: str | None = Query(default=None, alias="date"),
+    farm_id: str | None = None,
+    coop_id: str | None = None,
+    device_id: str | None = None,
+    db: Session = Depends(get_db),
+) -> dict:
+    try:
+        return build_daily_traceability(
+            db,
+            traceability_date=traceability_date,
+            farm_keys=resolve_farm_keys(db, farm_id),
+            coop_keys=resolve_coop_keys(db, coop_id),
+            device_id=device_id,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="date must use YYYY-MM-DD format",
+        ) from error
 
 
 @router.get("/health-history", response_model=List[DashboardHealthHistoryItem], dependencies=[require_dashboard_user])
@@ -162,6 +211,7 @@ def get_health_history(
                 coop_id=reading.coop_id,
                 temperature_c=reading.temperature_c,
                 humidity_percent=reading.humidity_percent,
+                motion=reading.motion,
                 weight_kg=reading.weight_kg,
                 prediction_status=prediction.prediction_status if prediction else None,
                 disease_type=prediction.disease_type if prediction else None,

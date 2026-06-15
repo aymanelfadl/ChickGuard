@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
@@ -13,13 +13,14 @@ import { createFarm, fetchFarms } from "../services/farmService.js";
 
 export default function FarmsPage({ user }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [farms, setFarms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const isAdmin = user?.role === "admin";
 
   async function loadFarms() {
@@ -37,6 +38,12 @@ export default function FarmsPage({ user }) {
   useEffect(() => {
     loadFarms();
   }, []);
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   async function handleCreateFarm(payload) {
     setIsSubmitting(true);
@@ -81,7 +88,9 @@ export default function FarmsPage({ user }) {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Farms</h1>
-            <p className="mt-1 text-sm text-[#6B7280]">Farm-level health status, coops, devices, and active alerts.</p>
+            <p className="mt-1 text-sm text-[#6B7280]">
+              Farm-level health status, coops, devices, and droppings image alerts.
+            </p>
           </div>
           {isAdmin ? (
             <button

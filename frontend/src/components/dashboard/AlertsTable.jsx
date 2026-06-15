@@ -10,14 +10,14 @@ const columns = ["Device", "Farm", "Coop", "Disease", "Confidence", "Droppings I
 export default function AlertsTable({ alerts }) {
   return (
     <Card
-      title="Health Alerts"
-      description="Health alerts from droppings analysis."
+      title="Droppings Image Alerts"
+      description="Image-based disease alerts from fecal image classification."
       action={<StatusBadge status={alerts.length ? "sick" : null} />}
     >
       {!alerts.length ? (
         <EmptyState
           icon={<ShieldCheck className="h-5 w-5" aria-hidden="true" />}
-          title="No active disease alerts"
+          title="No droppings image alerts"
           message="Sick detections will appear here when the model flags a case."
         />
       ) : (

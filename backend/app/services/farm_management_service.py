@@ -141,6 +141,7 @@ def latest_sensor_dict(reading: models.IoTReading | None) -> dict | None:
     return {
         "temperature_c": reading.temperature_c,
         "humidity_percent": reading.humidity_percent,
+        "motion": reading.motion,
         "weight_kg": reading.weight_kg,
         "battery_percent": reading.battery_percent,
         "wifi_rssi": reading.wifi_rssi,

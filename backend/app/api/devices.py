@@ -124,6 +124,7 @@ def device_out(device: models.Device) -> DeviceOut:
         stream_url=device.stream_url,
         location_label=device.location_label,
         description=device.description,
+        api_key_configured=bool(device.api_key_hash),
         is_active=device.is_active,
         created_at=device.created_at,
         **device_status_fields(device),
@@ -227,6 +228,7 @@ def get_device(device_id: str, db: Session = Depends(get_db)) -> DeviceDetailOut
         stream_url=device.stream_url,
         location_label=device.location_label,
         description=device.description,
+        api_key_configured=bool(device.api_key_hash),
         is_active=device.is_active,
         created_at=device.created_at,
         **device_status_fields(device),
@@ -323,3 +325,22 @@ def deactivate_device(
         message="Device deactivated",
         device_id=device.device_id,
     )
+
+
+@router.delete("/{device_id}", dependencies=[require_admin_user])
+def delete_device(device_id: str, db: Session = Depends(get_db)) -> dict:
+    sync_hierarchy_from_registered_devices(db)
+    device = db.query(models.Device).filter(models.Device.device_id == device_id).first()
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found",
+        )
+
+    camera = db.query(models.CameraDevice).filter(models.CameraDevice.device_id == device.device_id).first()
+    if camera:
+        db.delete(camera)
+    db.delete(device)
+    db.commit()
+
+    return {"status": "success", "message": "Device deleted", "device_id": device_id}

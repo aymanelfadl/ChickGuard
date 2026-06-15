@@ -14,6 +14,8 @@ const INITIAL_FORM = {
   is_active: true,
 };
 
+const SENSOR_DEVICE_TYPES = new Set(["esp32"]);
+
 export default function DeviceForm({
   farms = [],
   coops = [],
@@ -37,22 +39,25 @@ export default function DeviceForm({
     () => coops.find((coop) => String(coop.id) === String(form.coop_id)),
     [coops, form.coop_id],
   );
+  const isSensorDevice = SENSOR_DEVICE_TYPES.has(form.device_type);
 
   useEffect(() => {
     if (!initialValues) {
       return;
     }
 
+    const nextDeviceType = initialValues.device_type || initialValues.camera?.device_type || "esp32-cam";
+    const nextIsSensorDevice = SENSOR_DEVICE_TYPES.has(nextDeviceType);
     const farmValue = optionValueForIdentifier(farms, initialValues.farm_id || initialValues.camera?.farm_id);
     setForm((current) => ({
       ...current,
       device_id: initialValues.device_id || "",
       name: initialValues.name || initialValues.camera?.name || "",
-      device_type: initialValues.device_type || initialValues.camera?.device_type || "esp32-cam",
-      camera_type: initialValues.camera_type || initialValues.camera?.camera_type || "droppings-camera",
+      device_type: nextDeviceType,
+      camera_type: nextIsSensorDevice ? "" : initialValues.camera_type || initialValues.camera?.camera_type || "droppings-camera",
       farm_id: farmValue || "",
       coop_id: "",
-      stream_url: initialValues.stream_url || initialValues.camera?.stream_url || "",
+      stream_url: nextIsSensorDevice ? "" : initialValues.stream_url || initialValues.camera?.stream_url || "",
       location_label: initialValues.location_label || initialValues.camera?.location_label || "",
       description: initialValues.description || initialValues.camera?.description || "",
       api_key: "",
@@ -111,10 +116,10 @@ export default function DeviceForm({
     const payload = {
       name: clean(form.name) || form.device_id.trim(),
       device_type: form.device_type.trim(),
-      camera_type: clean(form.camera_type),
+      camera_type: isSensorDevice ? null : clean(form.camera_type),
       farm_id: selectedFarm.name,
       coop_id: selectedCoop.name,
-      stream_url: clean(form.stream_url),
+      stream_url: isSensorDevice ? null : clean(form.stream_url),
       location_label: clean(form.location_label),
       description: clean(form.description),
     };
@@ -134,8 +139,7 @@ export default function DeviceForm({
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
       <p className="rounded-lg bg-[#F8FBF8] p-3 text-sm leading-6 text-[#475569]">
-        Device type identifies the hardware or firmware. Camera type describes how the camera is used in the coop.
-        Stream URL is metadata for future live camera integration.
+        Register ESP32 sensors for MQTT telemetry or ESP32-CAM devices for poultry droppings image capture.
       </p>
       <FormMessage message={validationError || error} />
       <div className="grid gap-4 sm:grid-cols-2">
@@ -143,7 +147,7 @@ export default function DeviceForm({
           label="Device ID"
           value={form.device_id}
           onChange={(value) => setForm({ ...form, device_id: value })}
-          placeholder="esp32-cam-01"
+          placeholder={isSensorDevice ? "esp32-wokwi-01" : "esp32-cam-01"}
           disabled={isSubmitting || isEdit}
           required={!isEdit}
         />
@@ -195,35 +199,52 @@ export default function DeviceForm({
           <select
             className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
             value={form.device_type}
-            onChange={(event) => setForm({ ...form, device_type: event.target.value })}
+            onChange={(event) => {
+              const nextDeviceType = event.target.value;
+              const nextIsSensorDevice = SENSOR_DEVICE_TYPES.has(nextDeviceType);
+              setForm({
+                ...form,
+                device_type: nextDeviceType,
+                camera_type: nextIsSensorDevice ? "" : form.camera_type || "droppings-camera",
+                stream_url: nextIsSensorDevice ? "" : form.stream_url,
+              });
+            }}
             disabled={isSubmitting}
           >
-            <option value="esp32-cam">ESP32-CAM</option>
-            <option value="esp32">ESP32</option>
+            <option value="esp32-cam">ESP32-CAM Image Device</option>
+            <option value="esp32">ESP32 Sensor Device</option>
             <option value="ip-camera">IP Camera</option>
           </select>
         </label>
-        <label className="text-sm">
-          <span className="font-semibold text-[#64748B]">Camera Type</span>
-          <select
-            className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
-            value={form.camera_type}
-            onChange={(event) => setForm({ ...form, camera_type: event.target.value })}
-            disabled={isSubmitting}
-          >
-            <option value="droppings-camera">Droppings Camera</option>
-            <option value="overview-camera">Overview Camera</option>
-            <option value="environmental-camera">Environmental Camera</option>
-            <option value="security-camera">Security Camera</option>
-          </select>
-        </label>
-        <InputField
-          label="Stream URL"
-          value={form.stream_url}
-          onChange={(value) => setForm({ ...form, stream_url: value })}
-          placeholder="http://example.local/stream"
-          disabled={isSubmitting}
-        />
+        {!isSensorDevice ? (
+          <>
+            <label className="text-sm">
+              <span className="font-semibold text-[#64748B]">Camera Type</span>
+              <select
+                className="mt-1 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
+                value={form.camera_type}
+                onChange={(event) => setForm({ ...form, camera_type: event.target.value })}
+                disabled={isSubmitting}
+              >
+                <option value="droppings-camera">Droppings Camera</option>
+                <option value="overview-camera">Overview Camera</option>
+                <option value="environmental-camera">Environmental Camera</option>
+                <option value="security-camera">Security Camera</option>
+              </select>
+            </label>
+            <InputField
+              label="Stream URL"
+              value={form.stream_url}
+              onChange={(value) => setForm({ ...form, stream_url: value })}
+              placeholder="http://example.local/stream"
+              disabled={isSubmitting}
+            />
+          </>
+        ) : (
+          <div className="rounded-lg border border-[#D1FAE5] bg-[#F0FDF4] p-3 text-sm leading-6 text-[#166534] sm:col-span-2">
+            This device will be registered for sensor telemetry such as temperature, humidity, and motion readings.
+          </div>
+        )}
         <InputField
           label="Location Label"
           value={form.location_label}
@@ -238,7 +259,7 @@ export default function DeviceForm({
           className="mt-1 min-h-24 w-full rounded-lg border border-[#CBD5E1] px-3 py-2 text-[#102A1C]"
           value={form.description}
           onChange={(event) => setForm({ ...form, description: event.target.value })}
-          placeholder="Camera focused on droppings collection area"
+          placeholder={isSensorDevice ? "DHT/PIR sensor node for coop telemetry" : "Camera focused on droppings collection area"}
           disabled={isSubmitting}
         />
       </label>
@@ -253,7 +274,7 @@ export default function DeviceForm({
             disabled={isSubmitting}
           />
           <span className="mt-1 block text-xs leading-5 text-[#64748B]">
-            If left blank, the backend generates an API key and shows it once. Configure the same key on the device.
+            If left blank, the backend generates an API key and shows it once. Configure the same key in the device firmware.
           </span>
         </label>
       ) : (
@@ -281,7 +302,7 @@ export default function DeviceForm({
           className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-[#94A3B8]"
           disabled={isSubmitting || !farms.length || !coops.length}
         >
-          {isSubmitting ? (isEdit ? "Saving..." : "Registering...") : isEdit ? "Save Device" : "Register Device / Camera"}
+          {isSubmitting ? (isEdit ? "Saving..." : "Registering...") : isEdit ? "Save Device" : "Register Device"}
         </button>
       </div>
     </form>

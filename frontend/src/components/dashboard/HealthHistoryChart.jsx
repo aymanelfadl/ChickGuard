@@ -11,7 +11,7 @@ import {
 
 import Card from "../common/Card.jsx";
 import EmptyState from "../common/EmptyState.jsx";
-import { formatDateTime, formatHumidity, formatTemperature, formatWeight } from "../../utils/formatters.js";
+import { formatDateTime, formatHumidity, formatMotion, formatTemperature } from "../../utils/formatters.js";
 
 function formatChartTime(value) {
   if (!value) {
@@ -44,8 +44,8 @@ function ChartTooltip({ active, payload, label }) {
           <span className="font-semibold text-[#1C2B21]">{formatHumidity(values.humidityPercent)}</span>
         </p>
         <p className="flex items-center justify-between gap-8 text-[#6B7280]">
-          <span>Weight</span>
-          <span className="font-semibold text-[#1C2B21]">{formatWeight(values.weightKg)}</span>
+          <span>Motion</span>
+          <span className="font-semibold text-[#1C2B21]">{formatMotion(values.motion)}</span>
         </p>
       </div>
     </div>
@@ -69,7 +69,7 @@ export default function HealthHistoryChart({ history }) {
   return (
     <Card
       title="Health History"
-      description="Temperature, humidity, and weight trends from the latest device readings."
+      description="Temperature, humidity, and PIR motion trends from the latest device readings."
       className="overflow-hidden"
     >
       <div className="h-[360px] w-full sm:h-[420px]">
@@ -91,7 +91,7 @@ export default function HealthHistoryChart({ history }) {
               axisLine={false}
             />
             <YAxis
-              yAxisId="weight"
+              yAxisId="motion"
               orientation="right"
               tick={{ fill: "#6B7280", fontSize: 12, fontWeight: 500 }}
               tickLine={false}
@@ -120,10 +120,10 @@ export default function HealthHistoryChart({ history }) {
               activeDot={{ r: 5, strokeWidth: 2, stroke: "#FFFFFF" }}
             />
             <Line
-              yAxisId="weight"
+              yAxisId="motion"
               type="monotone"
-              dataKey="weightKg"
-              name="Weight kg"
+              dataKey="motion"
+              name="Motion"
               stroke="#15803D"
               strokeWidth={3}
               dot={false}

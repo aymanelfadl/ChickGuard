@@ -68,6 +68,33 @@ The backend starts an MQTT consumer on startup and subscribes to:
 poultry/+/+/readings
 ```
 
+## Decision Rules And Daily Traceability
+
+The backend rule engine combines the latest sensor reading, poultry droppings
+image prediction, and local day/night context. By default, local context uses:
+
+```text
+DECISION_TIMEZONE=Africa/Casablanca
+DECISION_DAYLIGHT_START_HOUR=6
+DECISION_DAYLIGHT_END_HOUR=20
+```
+
+Rules currently evaluate high/low temperature, high/low humidity, daytime
+no-motion, repeated night movement context, sick droppings analysis, and
+combined health risks such as heat stress. Decisions are deterministic from
+stored readings, so daily reports can be rebuilt for traceability.
+
+Daily traceability is available from:
+
+```text
+GET /api/dashboard/daily-traceability?date=2026-06-15
+GET /api/dashboard/daily-traceability?date=2026-06-15&farm_id=farm-01&coop_id=coop-01&device_id=esp32-sim-01
+```
+
+Farm and coop reports also include `daily_traceability`. The response contains
+sensor counts, droppings analysis counts, day/night summaries, motion counts,
+and aggregated decision occurrences for the selected local date.
+
 ## Run With Docker
 
 From the project root:
@@ -83,6 +110,14 @@ DATABASE_URL=sqlite:///./data/poultry_iot.db
 UPLOAD_DIR=./uploads
 MQTT_BROKER_HOST=mosquitto
 MQTT_BROKER_PORT=1883
+MQTT_USERNAME=
+MQTT_PASSWORD=
+MQTT_USE_TLS=false
+MQTT_TLS_INSECURE=false
+MQTT_TOPIC_READINGS_SUBSCRIPTION=poultry/+/+/readings
+DECISION_TIMEZONE=Africa/Casablanca
+DECISION_DAYLIGHT_START_HOUR=6
+DECISION_DAYLIGHT_END_HOUR=20
 JWT_SECRET_KEY=change-this-dev-secret
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
@@ -239,6 +274,7 @@ Protected dashboard endpoints return `401` without a valid token.
 - `GET /api/iot/image-readings`
 - `GET /api/dashboard/overview`
 - `GET /api/dashboard/latest-status`
+- `GET /api/dashboard/daily-traceability`
 - `GET /api/dashboard/health-history`
 - `GET /api/dashboard/alerts`
 
@@ -351,7 +387,7 @@ curl -X POST "http://localhost:8000/api/iot/image-reading" \
     "data": {
       "temperature_c": 31.5,
       "humidity_percent": 68,
-      "weight_kg": 1.25
+      "motion": 1
     },
     "metadata": {
       "battery_percent": 82,
@@ -402,7 +438,7 @@ curl -X POST "http://localhost:8000/api/iot/readings" \
     "data": {
       "temperature_c": 31.5,
       "humidity_percent": 68,
-      "weight_kg": 1.25
+      "motion": 1
     },
     "metadata": {
       "battery_percent": 82,

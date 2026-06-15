@@ -35,6 +35,7 @@ export function normalizeLatestStatus(raw = {}) {
       ? {
           temperatureC: numberOrNull(latestSensor.temperature_c),
           humidityPercent: numberOrNull(latestSensor.humidity_percent),
+          motion: numberOrNull(latestSensor.motion),
           weightKg: numberOrNull(latestSensor.weight_kg),
           timestamp: stringOrNull(latestSensor.timestamp),
         }
@@ -48,6 +49,7 @@ export function normalizeLatestStatus(raw = {}) {
           timestamp: stringOrNull(latestPrediction.timestamp),
         }
       : null,
+    decisions: normalizeDecisions(raw.decisions),
   };
 }
 
@@ -63,10 +65,29 @@ export function normalizeHealthHistory(raw = []) {
     coopId: stringOrNull(item.coop_id),
     temperatureC: numberOrNull(item.temperature_c),
     humidityPercent: numberOrNull(item.humidity_percent),
+    motion: numberOrNull(item.motion),
     weightKg: numberOrNull(item.weight_kg),
     predictionStatus: stringOrNull(item.prediction_status),
     diseaseType: stringOrNull(item.disease_type),
     confidence: numberOrNull(item.confidence),
+  }));
+}
+
+export function normalizeDecisions(raw = []) {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw.map((item, index) => ({
+    id: stringOrNull(item.id) || `decision-${index}`,
+    severity: stringOrNull(item.severity) || "normal",
+    title: stringOrNull(item.title) || "Decision",
+    description: stringOrNull(item.description),
+    action: stringOrNull(item.action),
+    source: stringOrNull(item.source),
+    deviceId: stringOrNull(item.device_id),
+    farmId: stringOrNull(item.farm_id),
+    coopId: stringOrNull(item.coop_id),
   }));
 }
 

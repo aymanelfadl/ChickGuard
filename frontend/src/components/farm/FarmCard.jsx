@@ -20,7 +20,7 @@ export default function FarmCard({ farm }) {
           <p className="mt-1 text-xl font-bold tracking-tight text-[#1C2B21]">{farm.number_of_devices ?? 0}</p>
         </div>
         <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-          <p className="text-xs font-semibold text-[#6B7280]">Active Alerts</p>
+          <p className="text-xs font-semibold text-[#6B7280]">Image Alerts</p>
           <p className={`mt-1 text-xl font-bold tracking-tight ${farm.active_alerts > 0 ? "text-red-600" : "text-[#1C2B21]"}`}>
             {farm.active_alerts ?? 0}
           </p>

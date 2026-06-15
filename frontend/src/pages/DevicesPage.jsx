@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
@@ -10,10 +11,12 @@ import DeviceCard from "../components/devices/DeviceCard.jsx";
 import DeviceForm from "../components/forms/DeviceForm.jsx";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
 import { fetchFarmCoops, fetchFarms } from "../services/farmService.js";
-import { fetchDevice, fetchDevices, registerDevice, updateDevice } from "../services/deviceService.js";
+import { deleteDevice, fetchDevice, fetchDevices, registerDevice, updateDevice } from "../services/deviceService.js";
 import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 
 export default function DevicesPage({ realtime, user }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [devices, setDevices] = useState([]);
   const [deviceDetails, setDeviceDetails] = useState([]);
   const [farms, setFarms] = useState([]);
@@ -26,7 +29,7 @@ export default function DevicesPage({ realtime, user }) {
   const [editingDevice, setEditingDevice] = useState(null);
   const [isSubmittingDevice, setIsSubmittingDevice] = useState(false);
   const [deviceSubmitError, setDeviceSubmitError] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(location.state?.successMessage || "");
   const [generatedApiKey, setGeneratedApiKey] = useState("");
   const isAdmin = user?.role === "admin";
 
@@ -70,6 +73,12 @@ export default function DevicesPage({ realtime, user }) {
   useEffect(() => {
     loadDevices();
   }, [loadDevices]);
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.pathname, location.state, navigate]);
 
   const handleRegistrationFarmChange = useCallback(async (farmId) => {
     if (!farmId) {
@@ -163,6 +172,24 @@ export default function DevicesPage({ realtime, user }) {
     }
   }
 
+  async function handleDeleteDevice(device) {
+    const deviceId = device?.device_id;
+    if (!deviceId || !window.confirm(`Delete device "${device.name || deviceId}"? Historical readings will be kept, but this device can no longer authenticate.`)) {
+      return;
+    }
+
+    setDeviceSubmitError("");
+    setSuccessMessage("");
+    setGeneratedApiKey("");
+    try {
+      await deleteDevice(deviceId);
+      setSuccessMessage(`${device.name || deviceId} deleted.`);
+      await loadDevices({ showLoading: false });
+    } catch (deleteError) {
+      setDeviceSubmitError(deleteError.message || "Unable to delete device.");
+    }
+  }
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -184,8 +211,8 @@ export default function DevicesPage({ realtime, user }) {
       />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Devices / Cameras</h2>
-          <p className="mt-1 text-sm text-[#6B7280]">Registered ESP32/ESP32-CAM devices, camera placeholders, and latest droppings analysis.</p>
+          <h2 className="text-3xl font-bold tracking-tight text-[#1C2B21]">Devices</h2>
+          <p className="mt-1 text-sm text-[#6B7280]">Registered ESP32 sensor devices, ESP32-CAM devices, and latest health activity.</p>
         </div>
         {isAdmin ? (
           <button
@@ -193,7 +220,7 @@ export default function DevicesPage({ realtime, user }) {
             onClick={openRegisterModal}
             className="rounded-xl bg-[#15803D] px-5 py-2.5 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800"
           >
-            Register Device / Camera
+            Register Device
           </button>
         ) : null}
       </div>
@@ -210,6 +237,11 @@ export default function DevicesPage({ realtime, user }) {
           </code>
         </div>
       ) : null}
+      {deviceSubmitError && !isRegisterOpen && !editingDevice ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">
+          {deviceSubmitError}
+        </p>
+      ) : null}
       {!devices.length ? (
         <Card title="No Devices">
           <div className="space-y-4">
@@ -221,7 +253,7 @@ export default function DevicesPage({ realtime, user }) {
                   onClick={openRegisterModal}
                   className="rounded-lg bg-[#14532D] px-4 py-2 text-sm font-semibold text-white"
                 >
-                  Register Device / Camera
+                  Register Device
                 </button>
               </div>
             ) : null}
@@ -243,19 +275,22 @@ export default function DevicesPage({ realtime, user }) {
                 stream_url: device.stream_url || device.camera?.stream_url,
                 location_label: device.location_label || device.camera?.location_label,
                 description: device.description || device.camera?.description,
+                latest_prediction: device.latest_prediction,
+                latest_sensor: device.latest_sensor,
                 status: device.status,
                 last_seen_at: device.last_seen_at,
                 last_event_type: device.last_event_type,
               }}
               canEdit={isAdmin}
               onEdit={() => openEditModal(device)}
+              onDelete={() => handleDeleteDevice(device)}
             />
           ))}
         </div>
       )}
 
       <Modal
-        title="Register Device / Camera"
+        title="Register Device"
         description="Register a device for API-key authenticated IoT ingestion."
         isOpen={isRegisterOpen}
         onClose={() => setIsRegisterOpen(false)}
@@ -273,8 +308,8 @@ export default function DevicesPage({ realtime, user }) {
       </Modal>
 
       <Modal
-        title="Edit Device / Camera"
-        description="Update dashboard camera metadata and device registry placement."
+        title="Edit Device"
+        description="Update device metadata and registry placement."
         isOpen={Boolean(editingDevice)}
         onClose={() => setEditingDevice(null)}
       >

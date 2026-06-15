@@ -8,13 +8,13 @@ export default function NeedsAttention({ alerts }) {
 
   return (
     <Card
-      title="Needs Attention"
-      description="Top actionable health alerts requiring your immediate review."
+      title="Droppings Image Alerts"
+      description="Image-based disease alerts requiring review."
       className="bg-white"
       action={
         alerts?.length > 0 ? (
           <Link to="/alerts" className="text-sm font-semibold text-[#15803D] hover:underline flex items-center gap-1">
-            View all alerts <ArrowRight className="h-4 w-4" />
+            View image alerts <ArrowRight className="h-4 w-4" />
           </Link>
         ) : null
       }
@@ -25,7 +25,7 @@ export default function NeedsAttention({ alerts }) {
             <ShieldCheck className="h-6 w-6" aria-hidden="true" />
           </div>
           <h3 className="text-sm font-semibold text-[#1C2B21]">All Systems Clear</h3>
-          <p className="mt-1 text-sm text-[#6B7280]">No active disease detections or offline devices to review.</p>
+          <p className="mt-1 text-sm text-[#6B7280]">No sick detections from droppings images.</p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

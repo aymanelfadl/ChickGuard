@@ -129,6 +129,7 @@ class IoTReading(Base):
 
     temperature_c = Column(Float, nullable=True)
     humidity_percent = Column(Float, nullable=True)
+    motion = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
 
     battery_percent = Column(Float, nullable=True)
@@ -162,6 +163,7 @@ class ImageReading(Base):
 
     temperature_c = Column(Float, nullable=True)
     humidity_percent = Column(Float, nullable=True)
+    motion = Column(Integer, nullable=True)
     weight_kg = Column(Float, nullable=True)
 
     battery_percent = Column(Float, nullable=True)

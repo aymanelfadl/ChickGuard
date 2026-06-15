@@ -26,3 +26,9 @@ export function updateDevice(deviceId, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+export function deleteDevice(deviceId) {
+  return fetchJson(DEVICE_ENDPOINTS.device(deviceId), {
+    method: "DELETE",
+  });
+}

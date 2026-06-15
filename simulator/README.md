@@ -44,6 +44,18 @@ The simulator publishes to:
 poultry/farm-01/coop-01/readings
 ```
 
+An ESP32/Wokwi MQTT sketch is available at:
+
+```text
+simulator/esp32_wokwi_mqtt.ino
+```
+
+For Wokwi with HiveMQ Cloud, configure the backend to consume from the same
+broker by setting `MQTT_BROKER_HOST`, `MQTT_BROKER_PORT=8883`, `MQTT_USERNAME`,
+`MQTT_PASSWORD`, and `MQTT_USE_TLS=true`. Keep the sketch topic as
+`poultry/farm-01/coop-01/readings` unless you also change
+`MQTT_TOPIC_READINGS_SUBSCRIPTION` on the backend.
+
 Connection settings when the backend runs directly on the host:
 
 ```text
