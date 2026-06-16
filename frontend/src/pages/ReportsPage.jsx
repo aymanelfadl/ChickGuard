@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import Card from "../components/common/Card.jsx";
-import DecisionRules from "../components/common/DecisionRules.jsx";
 import EmptyState from "../components/common/EmptyState.jsx";
 import ErrorState from "../components/common/ErrorState.jsx";
 import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
+import RuleActionsTable from "../components/common/RuleActionsTable.jsx";
 import StatusBadge from "../components/dashboard/StatusBadge.jsx";
 import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
@@ -319,12 +319,10 @@ export default function ReportsPage({ realtime }) {
             <ReportLatestSensor sensor={latestSensor} />
           </section>
 
-          <DecisionRules
-            decisions={report.decisions || traceability?.decisions || []}
+          <RuleActionsTable
+            actions={traceability?.rule_actions || report.decisions || []}
             title="Rule Actions"
-            description="Combined sensor and image decisions from the rule engine."
-            limit={5}
-            compact
+            description="All combined sensor and image decisions for the selected day, newest first."
           />
 
           <TraceabilitySection traceability={traceability} />

@@ -404,6 +404,45 @@ def aggregate_decisions(decisions: list[dict], limit: int) -> list[dict]:
     )[:limit]
 
 
+def timeline_decision(decision: dict, timestamp: datetime | None = None) -> dict:
+    if timestamp is None:
+        return decision
+
+    context = classify_period(timestamp)
+    return {
+        **decision,
+        "period": context["period"],
+        "timezone": context["timezone"],
+        "local_date": context["local_date"],
+        "local_time": context["local_time"],
+        "event_timestamp": timestamp.isoformat(),
+    }
+
+
+def rule_action_timeline(decisions: list[dict]) -> list[dict]:
+    seen: set[tuple] = set()
+    actions = []
+    for decision in decisions:
+        if decision.get("severity") == "normal":
+            continue
+        key = (
+            decision.get("id"),
+            decision.get("device_id"),
+            decision.get("event_timestamp"),
+            decision.get("source"),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        actions.append(decision)
+
+    return sorted(
+        actions,
+        key=lambda item: item.get("event_timestamp") or "",
+        reverse=True,
+    )
+
+
 def build_daily_traceability(
     db: Session,
     *,
@@ -440,10 +479,23 @@ def build_daily_traceability(
     predictions = [item for item in image_readings if item.prediction_status is not None]
 
     trace_decisions: list[dict] = []
+    rule_actions: list[dict] = []
     for reading in sensor_readings:
-        trace_decisions.extend(evaluate_health_decisions(reading, latest_prediction_for_sensor(db, reading)))
+        decisions = evaluate_health_decisions(reading, latest_prediction_for_sensor(db, reading))
+        trace_decisions.extend(decisions)
+        rule_actions.extend(
+            timeline_decision(decision, reading.timestamp)
+            for decision in decisions
+            if decision.get("source") in {"sensor", "combined"}
+        )
     for prediction in predictions:
-        trace_decisions.extend(evaluate_health_decisions(latest_sensor_for_prediction(db, prediction), prediction))
+        decisions = evaluate_health_decisions(latest_sensor_for_prediction(db, prediction), prediction)
+        trace_decisions.extend(decisions)
+        rule_actions.extend(
+            timeline_decision(decision, prediction.timestamp)
+            for decision in decisions
+            if decision.get("source") in {"image", "combined"}
+        )
 
     motion_values = [reading.motion for reading in sensor_readings if reading.motion is not None]
     motion_detected = sum(1 for value in motion_values if value == 1)
@@ -486,4 +538,5 @@ def build_daily_traceability(
             period_summary(sensor_readings, "night"),
         ],
         "decisions": aggregate_decisions(trace_decisions, decision_limit),
+        "rule_actions": rule_action_timeline(rule_actions),
     }

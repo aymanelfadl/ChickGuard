@@ -18,9 +18,11 @@ Farm
 
 `Device` remains the authentication registry for ESP32/simulator ingestion.
 `CameraDevice` stores product-facing camera metadata such as name, camera type,
-location label, status, and a future `stream_url`. Live video streaming is not
-implemented yet; reports and UI cards expose placeholders for future
-ESP32-CAM/IP camera integration.
+location label, status, and `stream_url`. `stream_url` can point to an external
+hosted camera viewer such as an Ivideon public camera page; the dashboard opens
+that URL as an external link. The backend does not ingest live video from that
+URL for AI classification. Fecal image classification still uses
+`POST /api/iot/image-reading` or a future snapshot capture integration.
 
 `device_type` identifies the hardware or firmware, such as `esp32-cam`, `esp32`,
 or `ip-camera`. `camera_type` describes the camera role in the coop, such as
@@ -93,7 +95,8 @@ GET /api/dashboard/daily-traceability?date=2026-06-15&farm_id=farm-01&coop_id=co
 
 Farm and coop reports also include `daily_traceability`. The response contains
 sensor counts, droppings analysis counts, day/night summaries, motion counts,
-and aggregated decision occurrences for the selected local date.
+aggregated decision occurrences, and `rule_actions`, which is the full
+time-ordered rule-action timeline for the selected local date.
 
 ## Run With Docker
 

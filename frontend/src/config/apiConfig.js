@@ -3,6 +3,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localho
 export const DASHBOARD_ENDPOINTS = {
   overview: "/api/dashboard/overview",
   latestStatus: "/api/dashboard/latest-status",
+  dailyTraceability: "/api/dashboard/daily-traceability",
   healthHistory: "/api/dashboard/health-history",
   alerts: "/api/dashboard/alerts",
 };
