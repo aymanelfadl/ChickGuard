@@ -233,10 +233,10 @@ export default function DeviceForm({
               </select>
             </label>
             <InputField
-              label="Stream URL"
+              label="Stream / Hosted Camera URL"
               value={form.stream_url}
               onChange={(value) => setForm({ ...form, stream_url: value })}
-              placeholder="http://example.local/stream"
+              placeholder="https://public.ivideon.com/camera/..."
               disabled={isSubmitting}
             />
           </>

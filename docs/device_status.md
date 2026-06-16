@@ -72,7 +72,31 @@ Device and camera rows support:
 
 `camera_type` describes the camera role in the coop, such as `droppings-camera`, `overview-camera`, `environmental-camera`, or `security-camera`.
 
-`stream_url` is metadata for future live camera integration. The dashboard may show it as configured, but SSE and image upload do not use it for camera streaming.
+`stream_url` links a camera viewer or stream to the dashboard metadata. For an
+externally hosted camera such as an Ivideon public camera page, register the
+device as `device_type="ip-camera"` and store the public camera page in
+`stream_url`.
+
+Example:
+
+```json
+{
+  "device_id": "ivideon-coop-01",
+  "name": "Coop 01 Ivideon Camera",
+  "device_type": "ip-camera",
+  "camera_type": "overview-camera",
+  "farm_id": "Farm 02",
+  "coop_id": "coop 1",
+  "stream_url": "https://public.ivideon.com/camera/100-mdmYKoJ7jJISB2VOb6GeKE:0/",
+  "location_label": "Coop 01 overview"
+}
+```
+
+The backend stores and returns this link, and the frontend opens it as an
+external stream/viewer. A public viewer page is not the same as a direct image
+snapshot endpoint. Automatic fecal image classification still requires
+`POST /api/iot/image-reading` or a future capture job that can fetch a direct
+JPEG/snapshot URL from the camera provider.
 
 ## Stored Fields
 

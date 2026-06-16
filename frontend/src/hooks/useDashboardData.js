@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchAlerts,
   fetchDashboardOverview,
+  fetchDailyTraceability,
   fetchHealthHistory,
   fetchLatestStatus,
 } from "../services/dashboardService.js";
@@ -16,6 +17,7 @@ import {
 export function useDashboardData() {
   const [overview, setOverview] = useState(normalizeOverview());
   const [latestStatus, setLatestStatus] = useState(normalizeLatestStatus());
+  const [dailyTraceability, setDailyTraceability] = useState(null);
   const [healthHistory, setHealthHistory] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,15 +31,17 @@ export function useDashboardData() {
     }
 
     try {
-      const [overviewData, latestStatusData, healthHistoryData, alertsData] = await Promise.all([
+      const [overviewData, latestStatusData, traceabilityData, healthHistoryData, alertsData] = await Promise.all([
         fetchDashboardOverview(),
         fetchLatestStatus(),
+        fetchDailyTraceability(),
         fetchHealthHistory(),
         fetchAlerts(),
       ]);
 
       setOverview(normalizeOverview(overviewData));
       setLatestStatus(normalizeLatestStatus(latestStatusData));
+      setDailyTraceability(traceabilityData);
       setHealthHistory(normalizeHealthHistory(healthHistoryData));
       setAlerts(normalizeAlerts(alertsData));
       setLastUpdatedAt(new Date().toISOString());
@@ -63,6 +67,7 @@ export function useDashboardData() {
   return {
     overview,
     latestStatus,
+    dailyTraceability,
     healthHistory,
     alerts,
     isLoading,

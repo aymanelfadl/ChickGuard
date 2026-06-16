@@ -9,6 +9,10 @@ export function fetchLatestStatus() {
   return fetchJson(DASHBOARD_ENDPOINTS.latestStatus);
 }
 
+export function fetchDailyTraceability() {
+  return fetchJson(DASHBOARD_ENDPOINTS.dailyTraceability);
+}
+
 export function fetchHealthHistory() {
   return fetchJson(DASHBOARD_ENDPOINTS.healthHistory);
 }

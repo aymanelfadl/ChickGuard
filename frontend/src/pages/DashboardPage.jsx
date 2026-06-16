@@ -1,7 +1,7 @@
 import ErrorState from "../components/common/ErrorState.jsx";
-import DecisionRules from "../components/common/DecisionRules.jsx";
 import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
+import RuleActionsTable from "../components/common/RuleActionsTable.jsx";
 import BusinessGuide from "../components/dashboard/BusinessGuide.jsx";
 import HealthHistoryChart from "../components/dashboard/HealthHistoryChart.jsx";
 import LatestStatus from "../components/dashboard/LatestStatus.jsx";
@@ -17,6 +17,7 @@ export default function DashboardPage({ realtime }) {
   const {
     overview,
     latestStatus,
+    dailyTraceability,
     healthHistory,
     alerts,
     isLoading,
@@ -63,12 +64,10 @@ export default function DashboardPage({ realtime }) {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold tracking-tight text-[#1C2B21]">Admin Brief</h2>
         <RecommendedActions alerts={alerts} overview={overview} decisions={latestStatus?.decisions || []} />
-        <DecisionRules
-          decisions={latestStatus?.decisions || []}
-          title="Current Decision"
-          description="Latest rule output from sensors, droppings analysis, and day/night context."
-          limit={3}
-          compact
+        <RuleActionsTable
+          actions={dailyTraceability?.rule_actions || latestStatus?.decisions || []}
+          title="Today's Rule Actions"
+          description="All combined sensor and image decisions for the current local day, newest first."
         />
       </section>
 
