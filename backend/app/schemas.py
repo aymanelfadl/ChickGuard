@@ -148,6 +148,31 @@ class DeviceUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+class CameraPairingCreate(BaseModel):
+    public_base_url: Optional[str] = None
+
+
+class CameraPairingOut(BaseModel):
+    status: str
+    message: str
+    device_id: str
+    pairing_url: str
+    pairing_code_expires_at: str
+    qr_svg: str
+
+
+class CameraSessionCreate(BaseModel):
+    pairing_code: str = Field(..., min_length=1)
+
+
+class CameraSessionOut(BaseModel):
+    status: str
+    device_id: str
+    session_token: str
+    session_expires_at: str
+    device: dict
+
+
 class DeviceHeartbeatCreate(BaseModel):
     farm_id: str = Field(..., min_length=1)
     coop_id: str = Field(..., min_length=1)

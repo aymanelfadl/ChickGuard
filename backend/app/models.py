@@ -109,6 +109,23 @@ class CameraDevice(Base):
     )
 
 
+class CameraPairingCode(Base):
+    """Short-lived one-time pairing code for phone-browser camera enrollment."""
+
+    __tablename__ = "camera_pairing_codes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String(100), ForeignKey("devices.device_id"), index=True, nullable=False)
+    code_hash = Column(String(128), unique=True, index=True, nullable=False)
+    expires_at = Column(DateTime(timezone=True), index=True, nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+
+
 class IoTReading(Base):
     """Sensor-only readings received from ESP32 devices or the simulator."""
 

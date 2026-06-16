@@ -18,11 +18,11 @@ Farm
 
 `Device` remains the authentication registry for ESP32/simulator ingestion.
 `CameraDevice` stores product-facing camera metadata such as name, camera type,
-location label, status, and `stream_url`. `stream_url` can point to an external
-hosted camera viewer such as an Ivideon public camera page; the dashboard opens
-that URL as an external link. The backend does not ingest live video from that
-URL for AI classification. Fecal image classification still uses
-`POST /api/iot/image-reading` or a future snapshot capture integration.
+location label, status, and optional `stream_url` for dashboard reference links.
+The backend does not scrape hosted camera viewer pages for AI classification.
+Fecal image classification uses `POST /api/iot/image-reading`; the demo phone
+camera page at `GET /camera` captures JPEG frames in the browser and sends them
+to that same ingestion endpoint.
 
 `device_type` identifies the hardware or firmware, such as `esp32-cam`, `esp32`,
 or `ip-camera`. `camera_type` describes the camera role in the coop, such as
@@ -34,6 +34,68 @@ Physical devices and the simulator send telemetry, heartbeats, and poultry
 droppings image uploads with `X-Device-Id` and `X-Device-Api-Key`.
 
 Farm and coop reports return JSON for now, not PDF.
+
+## Phone Camera Demo
+
+The backend includes a demo page for phones that are not on the same local
+network as the backend. The phone browser captures a poultry droppings image
+frame every 30 seconds and uploads it over HTTPS to the existing image ingestion
+endpoint.
+
+Register a device first and keep the generated API key:
+
+```text
+device_id=phone-camera-01
+device_type=phone-browser-camera
+camera_type=droppings-camera
+farm_id=farm-01
+coop_id=coop-01
+```
+
+Run the backend locally:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Expose it to the phone:
+
+```bash
+ngrok http 8000
+```
+
+Open the ngrok URL on the phone:
+
+```text
+https://YOUR_NGROK_URL/camera
+```
+
+Open the camera device details page in the dashboard and generate a phone camera
+pairing QR. Use the ngrok HTTPS backend URL as the public base URL. The QR opens
+`GET /camera?pairing_code=...` on the phone, exchanges the one-time pairing code
+for a scoped camera session token, then starts capture automatically. The page
+uses a relative upload URL:
+
+```text
+POST /api/iot/image-reading
+```
+
+Useful demo environment variables:
+
+```text
+PHONE_CAMERA_CAPTURE_INTERVAL_SECONDS=30
+```
+
+The phone page never receives the device API key. The backend stores only API
+key hashes, creates a short-lived one-time pairing code for the QR, and issues a
+scoped camera session token for image uploads.
+
+Pairing/session tuning:
+
+```text
+CAMERA_PAIRING_EXPIRE_SECONDS=300
+CAMERA_SESSION_EXPIRE_MINUTES=720
+```
 
 ## Run Locally
 

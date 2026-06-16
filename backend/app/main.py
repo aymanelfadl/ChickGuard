@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app import models
 from app.api.auth import router as auth_router
+from app.api.camera_capture import router as camera_capture_router
 from app.api.dashboard import router as dashboard_router
 from app.api.devices import router as devices_router
 from app.api.farms import router as farms_router
@@ -52,6 +53,7 @@ def shutdown_event() -> None:
 
 
 app.include_router(iot_router)
+app.include_router(camera_capture_router)
 app.include_router(devices_router)
 app.include_router(farms_router)
 app.include_router(image_gallery_router)

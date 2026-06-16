@@ -29,6 +29,7 @@ export const DEVICE_ENDPOINTS = {
   devices: "/api/devices",
   register: "/api/devices/register",
   device: (deviceId) => `/api/devices/${deviceId}`,
+  cameraPairing: (deviceId) => `/api/devices/${deviceId}/camera-pairing`,
 };
 
 export const IMAGE_GALLERY_ENDPOINTS = {

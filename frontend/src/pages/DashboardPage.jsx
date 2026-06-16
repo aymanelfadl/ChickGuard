@@ -2,7 +2,6 @@ import ErrorState from "../components/common/ErrorState.jsx";
 import LiveUpdateStatus from "../components/common/LiveUpdateStatus.jsx";
 import LoadingState from "../components/common/LoadingState.jsx";
 import RuleActionsTable from "../components/common/RuleActionsTable.jsx";
-import BusinessGuide from "../components/dashboard/BusinessGuide.jsx";
 import HealthHistoryChart from "../components/dashboard/HealthHistoryChart.jsx";
 import LatestStatus from "../components/dashboard/LatestStatus.jsx";
 import OperationsCards from "../components/dashboard/OperationsCards.jsx";
@@ -83,8 +82,6 @@ export default function DashboardPage({ realtime }) {
         <DataActivityCards overview={overview} />
         <HealthHistoryChart history={healthHistory} />
       </section>
-{/* 
-      <BusinessGuide /> */}
     </div>
   );
 }

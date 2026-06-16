@@ -1,7 +1,7 @@
 import secrets
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,8 @@ from app import models
 from app.database import get_db
 from app.schemas import (
     CameraDeviceOut,
+    CameraPairingCreate,
+    CameraPairingOut,
     DeviceDetailOut,
     DeviceOut,
     DeviceRegisterAck,
@@ -16,6 +18,7 @@ from app.schemas import (
     DeviceUpdate,
 )
 from app.services.auth_service import get_current_user, require_roles
+from app.services.camera_pairing_service import CameraPairingError, create_pairing_response
 from app.services.device_auth_service import hash_api_key
 from app.services.device_status_service import device_status_fields
 from app.services.farm_management_service import (
@@ -236,6 +239,30 @@ def get_device(device_id: str, db: Session = Depends(get_db)) -> DeviceDetailOut
         latest_prediction=latest_prediction_dict(latest_analysis),
         latest_sensor=latest_sensor_dict(latest_sensor),
     )
+
+
+@router.post("/{device_id}/camera-pairing", response_model=CameraPairingOut, dependencies=[require_manager_user])
+def create_camera_pairing(
+    device_id: str,
+    payload: CameraPairingCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+) -> dict:
+    device = db.query(models.Device).filter(models.Device.device_id == device_id).first()
+    if not device:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Device not found",
+        )
+
+    public_base_url = payload.public_base_url or str(request.base_url)
+    try:
+        return create_pairing_response(db, device, public_base_url)
+    except CameraPairingError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from error
 
 
 @router.patch("/{device_id}", response_model=DeviceDetailOut, dependencies=[require_admin_user])

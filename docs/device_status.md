@@ -72,31 +72,30 @@ Device and camera rows support:
 
 `camera_type` describes the camera role in the coop, such as `droppings-camera`, `overview-camera`, `environmental-camera`, or `security-camera`.
 
-`stream_url` links a camera viewer or stream to the dashboard metadata. For an
-externally hosted camera such as an Ivideon public camera page, register the
-device as `device_type="ip-camera"` and store the public camera page in
-`stream_url`.
+`stream_url` is only dashboard metadata for a camera viewer or reference link.
+The backend does not parse hosted viewer pages as image streams and does not use
+`stream_url` for fecal image classification.
 
 Example:
 
 ```json
 {
-  "device_id": "ivideon-coop-01",
-  "name": "Coop 01 Ivideon Camera",
-  "device_type": "ip-camera",
-  "camera_type": "overview-camera",
+  "device_id": "phone-camera-01",
+  "name": "Coop 01 Phone Camera",
+  "device_type": "phone-browser-camera",
+  "camera_type": "droppings-camera",
   "farm_id": "Farm 02",
   "coop_id": "coop 1",
-  "stream_url": "https://public.ivideon.com/camera/100-mdmYKoJ7jJISB2VOb6GeKE:0/",
-  "location_label": "Coop 01 overview"
+  "stream_url": null,
+  "location_label": "Coop 01 droppings area"
 }
 ```
 
-The backend stores and returns this link, and the frontend opens it as an
-external stream/viewer. A public viewer page is not the same as a direct image
-snapshot endpoint. Automatic fecal image classification still requires
-`POST /api/iot/image-reading` or a future capture job that can fetch a direct
-JPEG/snapshot URL from the camera provider.
+For the phone demo, generate a short-lived pairing QR from the dashboard device
+details page. The QR opens `GET /camera?pairing_code=...` through HTTPS/ngrok.
+The browser exchanges the pairing code for a scoped camera session token,
+captures JPEG frames, and sends multipart uploads to
+`POST /api/iot/image-reading`.
 
 ## Stored Fields
 
