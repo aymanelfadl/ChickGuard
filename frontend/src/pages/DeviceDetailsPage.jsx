@@ -13,7 +13,7 @@ import Breadcrumbs from "../components/navigation/Breadcrumbs.jsx";
 import HierarchyContext from "../components/navigation/HierarchyContext.jsx";
 import { useImageGallery } from "../hooks/useImageGallery.js";
 import { useRealtimeRefresh } from "../hooks/useRealtimeRefresh.js";
-import { deleteDevice, fetchDevice, updateDevice } from "../services/deviceService.js";
+import { createCameraPairing, deleteDevice, fetchDevice, updateDevice } from "../services/deviceService.js";
 import { fetchFarmCoops, fetchFarms } from "../services/farmService.js";
 import { formatDateTime, formatHumidity, formatMotion, formatTemperature } from "../utils/formatters.js";
 
@@ -32,6 +32,9 @@ export default function DeviceDetailsPage({ realtime, user }) {
   const [deviceSubmitError, setDeviceSubmitError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [pairingData, setPairingData] = useState(null);
+  const [pairingError, setPairingError] = useState("");
+  const [isCreatingPairing, setIsCreatingPairing] = useState(false);
   const recentImages = useImageGallery({ device_id: deviceId, limit: 6, offset: 0 });
   const isAdmin = user?.role === "admin";
 
@@ -133,6 +136,22 @@ export default function DeviceDetailsPage({ realtime, user }) {
     }
   }
 
+  async function handleCreateCameraPairing() {
+    setPairingError("");
+    setPairingData(null);
+    setIsCreatingPairing(true);
+    try {
+      const pairing = await createCameraPairing(deviceId, {
+        public_base_url: window.location.origin,
+      });
+      setPairingData(pairing);
+    } catch (createPairingError) {
+      setPairingError(createPairingError.message || "Unable to create phone camera pairing QR.");
+    } finally {
+      setIsCreatingPairing(false);
+    }
+  }
+
   if (isLoading) {
     return <LoadingState />;
   }
@@ -150,6 +169,7 @@ export default function DeviceDetailsPage({ realtime, user }) {
   const deviceStatus = device?.status || device?.camera?.status;
   const deviceType = device?.device_type || device?.camera?.device_type || "esp32-cam";
   const isSensorDevice = deviceType === "esp32";
+  const canCreatePairing = !isSensorDevice && ["admin", "manager"].includes(user?.role);
   const deviceKindLabel = isSensorDevice ? "Sensor" : "Camera";
   const metadata = {
     ...(device?.camera || {}),
@@ -327,6 +347,45 @@ export default function DeviceDetailsPage({ realtime, user }) {
             emptyTitle="No camera images yet"
             emptyMessage="Uploaded images from this camera will appear here."
           />
+        </Card>
+      ) : null}
+
+      {canCreatePairing ? (
+        <Card
+          title="Phone Camera Pairing"
+          description="Generate a short-lived QR code for the phone camera enrollment flow."
+        >
+          <div className="space-y-4">
+            <button
+              type="button"
+              onClick={handleCreateCameraPairing}
+              disabled={isCreatingPairing}
+              className="rounded-xl bg-[#15803D] px-4 py-2 text-sm font-semibold text-white shadow-apple-sm transition-colors hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isCreatingPairing ? "Creating QR..." : "Generate Pairing QR"}
+            </button>
+            {pairingError ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-semibold text-red-700">
+                {pairingError}
+              </p>
+            ) : null}
+            {pairingData ? (
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="space-y-2 rounded-xl border border-green-100 bg-[#F0FDF4] p-3 text-sm text-[#166534]">
+                  <p className="font-semibold">QR expires at {formatDateTime(pairingData.pairing_code_expires_at)}.</p>
+                  <a className="break-all underline" href={pairingData.pairing_url} target="_blank" rel="noreferrer">
+                    {pairingData.pairing_url}
+                  </a>
+                </div>
+                <div className="flex min-h-[260px] items-center justify-center rounded-xl border border-gray-200 bg-white p-4">
+                  <div
+                    className="w-full max-w-[240px]"
+                    dangerouslySetInnerHTML={{ __html: pairingData.qr_svg }}
+                  />
+                </div>
+              </div>
+            ) : null}
+          </div>
         </Card>
       ) : null}
 

@@ -32,3 +32,10 @@ export function deleteDevice(deviceId) {
     method: "DELETE",
   });
 }
+
+export function createCameraPairing(deviceId, payload) {
+  return fetchJson(DEVICE_ENDPOINTS.cameraPairing(deviceId), {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

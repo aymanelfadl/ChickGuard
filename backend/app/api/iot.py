@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Query, UploadFile, status
@@ -18,6 +19,7 @@ from app.schemas import (
     IoTReadingCreate,
     IoTReadingOut,
 )
+from app.services.camera_pairing_service import CameraPairingError, verify_camera_session_token
 from app.services.device_auth_service import get_authenticated_device, validate_payload_matches_device
 from app.services.auth_service import get_current_user
 from app.services.device_status_service import (
@@ -62,7 +64,7 @@ def parse_image_metadata(metadata_json: str) -> IoTReadingCreate:
         )
 
     try:
-        return IoTReadingCreate.model_validate(raw_metadata)
+        return IoTReadingCreate.model_validate(normalize_image_metadata(raw_metadata))
     except ValidationError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -70,11 +72,69 @@ def parse_image_metadata(metadata_json: str) -> IoTReadingCreate:
         ) from error
 
 
+def normalize_image_metadata(raw_metadata: dict) -> dict:
+    """
+    Accept the full IoT reading schema and the lightweight phone camera demo
+    schema, then validate everything through IoTReadingCreate.
+    """
+    if "device" in raw_metadata and "location" in raw_metadata:
+        return raw_metadata
+
+    required_fields = ("device_id", "farm_id", "coop_id")
+    if not all(raw_metadata.get(field) for field in required_fields):
+        return raw_metadata
+
+    now = datetime.now(timezone.utc)
+    nested_metadata = raw_metadata.get("metadata")
+    if not isinstance(nested_metadata, dict):
+        nested_metadata = {}
+
+    return {
+        "schema_version": str(raw_metadata.get("schema_version") or "1.0"),
+        "message_id": str(
+            raw_metadata.get("message_id")
+            or f"{raw_metadata['device_id']}-{int(now.timestamp() * 1000)}"
+        ),
+        "device": {
+            "device_id": raw_metadata["device_id"],
+            "device_type": raw_metadata.get("device_type") or "phone-browser-camera",
+            "firmware_version": raw_metadata.get("firmware_version") or "browser-demo",
+        },
+        "location": {
+            "farm_id": raw_metadata["farm_id"],
+            "coop_id": raw_metadata["coop_id"],
+        },
+        "timestamp": raw_metadata.get("timestamp") or now.isoformat(),
+        "data": raw_metadata.get("data") if isinstance(raw_metadata.get("data"), dict) else {},
+        "metadata": {
+            **nested_metadata,
+            "source": raw_metadata.get("source") or nested_metadata.get("source"),
+            "api_key": raw_metadata.get("api_key") or nested_metadata.get("api_key"),
+        },
+    }
+
+
 def require_authenticated_device(
     x_device_id: str | None = Header(default=None, alias="X-Device-Id"),
     x_device_api_key: str | None = Header(default=None, alias="X-Device-Api-Key"),
+    x_camera_session_token: str | None = Header(default=None, alias="X-Camera-Session-Token"),
     db: Session = Depends(get_db),
 ) -> models.Device:
+    if x_camera_session_token:
+        try:
+            device = verify_camera_session_token(db, x_camera_session_token)
+        except CameraPairingError as error:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail=str(error),
+            ) from error
+        if x_device_id and x_device_id != device.device_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="X-Device-Id does not match camera session token",
+            )
+        return device
+
     return get_authenticated_device(db, x_device_id, x_device_api_key)
 
 

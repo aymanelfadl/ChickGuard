@@ -39,6 +39,13 @@ DECISION_TIMEZONE = os.getenv("DECISION_TIMEZONE", "Africa/Casablanca")
 DECISION_DAYLIGHT_START_HOUR = int(os.getenv("DECISION_DAYLIGHT_START_HOUR", "6"))
 DECISION_DAYLIGHT_END_HOUR = int(os.getenv("DECISION_DAYLIGHT_END_HOUR", "20"))
 
+PHONE_CAMERA_CAPTURE_INTERVAL_SECONDS = max(
+    1,
+    int(os.getenv("PHONE_CAMERA_CAPTURE_INTERVAL_SECONDS", "30")),
+)
+CAMERA_PAIRING_EXPIRE_SECONDS = int(os.getenv("CAMERA_PAIRING_EXPIRE_SECONDS", "300"))
+CAMERA_SESSION_EXPIRE_MINUTES = int(os.getenv("CAMERA_SESSION_EXPIRE_MINUTES", "720"))
+
 # Development default only. Production deployments must set a strong secret.
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "change-this-dev-secret")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
