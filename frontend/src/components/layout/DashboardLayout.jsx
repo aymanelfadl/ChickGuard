@@ -139,23 +139,6 @@ function Sidebar({ user, onNavigate }) {
           </div>
         ))}
       </nav>
-
-      <div className="border-t border-gray-200 p-4">
-        <div className="rounded-lg border border-gray-200 bg-[#F8FAFC] p-3">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-[#64748B]">
-            <BookOpen className="h-4 w-4" aria-hidden="true" />
-            Navigation Depth
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-1 text-xs font-semibold text-[#334155]">
-            {workflowSteps.map((step, index) => (
-              <span key={step} className="inline-flex items-center gap-1">
-                {index > 0 ? <ChevronRight className="h-3 w-3 text-[#94A3B8]" aria-hidden="true" /> : null}
-                {step}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }
